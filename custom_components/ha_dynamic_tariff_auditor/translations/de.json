@@ -50,10 +50,10 @@
         "name": "Verbrauch im Zeitraum"
       },
       "avg_dyn_ct": {
-        "name": "Ø Preis dynamisch"
+        "name": "Arbeitspreis dynamisch (ohne Grundgebühr)"
       },
       "avg_static_ct": {
-        "name": "Ø Preis statisch"
+        "name": "Arbeitspreis statisch (ohne Grundgebühr)"
       },
       "month_dyn_cost": {
         "name": "Kosten dynamisch (laufender Monat)"

@@ -155,3 +155,14 @@ def test_month_summary_uses_full_base_fee():
     assert s["month_kwh"] == pytest.approx(1.0)
     assert s["month_static_cost"] == pytest.approx(10.0 + 0.30)  # volle Grundgebühr
     assert s["month_dyn_cost"] == pytest.approx(5.0 + 0.15)
+
+
+def test_average_prices_are_energy_only_and_priced_only():
+    prices = PriceSeries()
+    prices.add(ts(2025, 1, 1), 0.10)
+    ev = make(prices=prices, start=ts(2025, 1, 1))
+    ev.update_power(ts(2025, 1, 1, 0), 2.0)
+    ev.update_power(ts(2025, 1, 1, 1), 0.0)  # 2 kWh mit Preis
+    s = summarize(ev.totals())
+    assert s["avg_static_ct"] == pytest.approx(30.0)  # 0,30 €/kWh
+    assert s["avg_dyn_ct"] == pytest.approx(15.0)  # 0,10 + 0,05 €/kWh

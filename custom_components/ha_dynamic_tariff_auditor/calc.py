@@ -68,6 +68,7 @@ class Bucket:
     kwh: float = 0.0
     kwh_no_tariff: float = 0.0
     kwh_no_price: float = 0.0
+    kwh_priced: float = 0.0  # kWh mit Tarif UND Preis (Basis für Arbeitspreise)
     static_energy: float = 0.0
     static_base: float = 0.0
     dyn_energy: float = 0.0
@@ -151,6 +152,7 @@ class Evaluator:
             b.kwh_no_price += kwh
         if tariff is None or spot is None:
             return
+        b.kwh_priced += kwh
         b.static_energy += kwh * tariff.work_price
         b.dyn_energy += kwh * self.dynamic.price(spot)
 
@@ -225,8 +227,10 @@ def summarize(t: Bucket) -> dict:
         "dyn_cost": dyn,
         "difference": diff,
         "savings_pct": diff / static * 100 if static > 0 else None,
-        "avg_static_ct": static / t.kwh * 100 if t.kwh > 0 else None,
-        "avg_dyn_ct": dyn / t.kwh * 100 if t.kwh > 0 else None,
+        # Arbeitspreis (ohne Grundgebühr), nur über kWh mit Tarif und Preis
+        "avg_static_ct": t.static_energy / t.kwh_priced * 100 if t.kwh_priced > 0 else None,
+        "avg_dyn_ct": t.dyn_energy / t.kwh_priced * 100 if t.kwh_priced > 0 else None,
+        "kwh_priced": t.kwh_priced,
         "kwh_no_tariff": t.kwh_no_tariff,
         "kwh_no_price": t.kwh_no_price,
     }

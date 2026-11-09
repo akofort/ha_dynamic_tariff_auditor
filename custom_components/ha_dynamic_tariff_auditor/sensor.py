@@ -83,6 +83,7 @@ class DynamicTariffAuditorSensor(DynamicTariffAuditorEntity, SensorEntity):
     def __init__(self, coordinator: DynamicTariffAuditorCoordinator, description: SensorEntityDescription):
         super().__init__(coordinator, description.key)
         self.entity_description = description
+        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> Any:
