@@ -67,10 +67,10 @@ def _user_schema() -> vol.Schema:
                 NumberSelectorConfig(min=0, max=1000, step=0.01,
                                      unit_of_measurement="€/Monat", mode=NumberSelectorMode.BOX)
             ),
-            vol.Required(CONF_DYN_FACTOR, default=1.0): NumberSelector(
+            vol.Required(CONF_DYN_FACTOR, default=1.19): NumberSelector(
                 NumberSelectorConfig(min=0, max=10, step=0.001, mode=NumberSelectorMode.BOX)
             ),
-            vol.Required(CONF_DYN_SURCHARGE, default=0.0): NumberSelector(
+            vol.Required(CONF_DYN_SURCHARGE, default=18.0): NumberSelector(
                 NumberSelectorConfig(min=-100, max=100, step=0.01,
                                      unit_of_measurement="ct/kWh", mode=NumberSelectorMode.BOX)
             ),

@@ -35,6 +35,11 @@ werden die Stunden-Statistiken aus der Datenbank nachberechnet.
 Im Config-Flow je Zeitraum: Bezeichnung, gültig ab, gültig bis (optional), Grundpreis (€/Monat), Arbeitspreis (ct/kWh, brutto). Für einen Preiswechsel einen weiteren Zeitraum anlegen. Eine Optionsseite dafür gibt es noch nicht.
 
 ### Dynamischer Tarif
+Vorbelegt sind Faktor **1,19** und Aufschlag **18 ct/kWh**. Die Richtwerte:
+
+- **Faktor:** 1,19, wenn der Börsenpreis netto ist (MwSt. 19 %). Ist der Sensor schon brutto (z. B. Tibber-Gesamtpreis), 1,0 eintragen.
+- **Aufschlag:** typisch **16–20 ct/kWh** je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Die genaue Höhe steht auf der Stromrechnung.
+
 Der Preis wird aus dem Sensor so berechnet:
 
     Preis = Spotpreis × Faktor + Aufschlag

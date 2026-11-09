@@ -13,6 +13,10 @@
           "dyn_surcharge_ct": "Aufschlag (ct/kWh, nach Faktor)",
           "eval_start": "Auswertung ab",
           "eval_end": "Auswertung bis (optional)"
+        },
+        "data_description": {
+          "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei Tibber meist 1,0, weil der Preis schon brutto ist.",
+          "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct."
         }
       },
       "static": {
@@ -103,6 +107,10 @@
           "dyn_factor": "Faktor auf Börsenpreis",
           "dyn_surcharge_ct": "Aufschlag (ct/kWh)",
           "eval_start": "Auswertung ab"
+        },
+        "data_description": {
+          "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei Tibber meist 1,0, weil der Preis schon brutto ist.",
+          "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct."
         }
       },
       "static_add": {
