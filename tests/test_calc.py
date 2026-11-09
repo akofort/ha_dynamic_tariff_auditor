@@ -212,3 +212,19 @@ def test_end_date_stops_counting():
     ev2.consume(ts(2025, 1, 3, 0), 0.0)  # nach Ende: ignoriert
     ev2.tick(ts(2025, 1, 5))
     assert ev2.totals().kwh == pytest.approx(11.0)
+
+
+def test_energy_charts_parser_hourly_mean():
+    import sys
+    sys.path.insert(0, "/home/user/custom_components/ha_dynamic_tariff_auditor")
+    from energy_charts import parse_energy_charts
+
+    payload = {"data": [
+        {"timestamp": "2026-11-01T00:00:00+01:00", "values": {"day_ahead_price": 100.0}},
+        {"timestamp": "2026-11-01T00:15:00+01:00", "values": {"day_ahead_price": 200.0}},
+        {"timestamp": "2026-11-01T01:00:00+01:00", "values": {"day_ahead_price": 50.0}},
+    ]}
+    res = parse_energy_charts(payload)
+    values = list(res.values())
+    assert values[0] == pytest.approx(150.0)
+    assert values[1] == pytest.approx(50.0)

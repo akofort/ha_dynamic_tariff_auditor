@@ -9,3 +9,21 @@ import_smard_prices:
       example: /config/www/smard.csv
       selector:
         text:
+
+import_energy_charts_prices:
+  name: Energy-Charts-Preise importieren
+  description: Börsenpreise (DE-LU) von der Energy-Charts-API für einen Zeitraum holen, in die Preis-Statistik schreiben und neu berechnen.
+  fields:
+    start:
+      name: Von
+      description: Erster Tag (JJJJ-MM-TT, Ortszeit)
+      required: true
+      example: "2025-01-01"
+      selector:
+        text:
+    end:
+      name: Bis
+      description: Letzter Tag, einschließlich (JJJJ-MM-TT). Leer = heute.
+      example: "2025-12-31"
+      selector:
+        text:

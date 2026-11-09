@@ -1,6 +1,7 @@
 """Dynamic Tariff Auditor: dynamischer Stromtarif vs. statische Tarife."""
 from __future__ import annotations
 
+from datetime import date, datetime
 from pathlib import Path
 
 import voluptuous as vol
@@ -11,32 +12,45 @@ from homeassistant.components.recorder.statistics import import_statistics
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .calc import PRICE_UNIT_FACTORS
 from .const import CONF_PRICE, CONF_PRICE_UNIT, DOMAIN
 from .coordinator import RESET_PENDING, STORAGE_VERSION, DynamicTariffAuditorCoordinator
+from .energy_charts import fetch_energy_charts
 from .smard import parse_smard_csv
 
 PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
 SERVICE_IMPORT_SMARD = "import_smard_prices"
+SERVICE_IMPORT_ENERGY_CHARTS = "import_energy_charts_prices"
 
 type DynamicTariffAuditorConfigEntry = ConfigEntry[DynamicTariffAuditorCoordinator]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Dienst registrieren (einmalig, unabhängig vom Eintrag)."""
+    """Dienste registrieren (einmalig, unabhängig vom Eintrag)."""
 
-    async def _handle_import(call: ServiceCall) -> None:
-        await _async_import_smard(hass, call.data["file"])
+    async def _handle_smard(call: ServiceCall) -> None:
+        prices = await hass.async_add_executor_job(_read_smard, call.data["file"])
+        await _async_write_prices(hass, prices)
+
+    async def _handle_energy_charts(call: ServiceCall) -> None:
+        start = date.fromisoformat(call.data["start"])
+        end = date.fromisoformat(call.data["end"]) if call.data.get("end") else dt_util.now().date()
+        prices = await fetch_energy_charts(async_get_clientsession(hass), start, end)
+        await _async_write_prices(hass, prices)
 
     if not hass.services.has_service(DOMAIN, SERVICE_IMPORT_SMARD):
         hass.services.async_register(
-            DOMAIN,
-            SERVICE_IMPORT_SMARD,
-            _handle_import,
+            DOMAIN, SERVICE_IMPORT_SMARD, _handle_smard,
             schema=vol.Schema({vol.Required("file"): str}),
+        )
+    if not hass.services.has_service(DOMAIN, SERVICE_IMPORT_ENERGY_CHARTS):
+        hass.services.async_register(
+            DOMAIN, SERVICE_IMPORT_ENERGY_CHARTS, _handle_energy_charts,
+            schema=vol.Schema({vol.Required("start"): str, vol.Optional("end"): str}),
         )
     return True
 
@@ -68,27 +82,26 @@ async def _async_reset_and_reload(hass: HomeAssistant, entry: ConfigEntry) -> No
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-def _read_file(path: str) -> str:
+def _read_smard(path: str) -> dict[datetime, float]:
+    """SMARD-CSV lesen (€/MWh, Stundenmittel)."""
     data = Path(path).read_bytes()
     try:
-        return data.decode("utf-8-sig")
+        text = data.decode("utf-8-sig")
     except UnicodeDecodeError:
-        return data.decode("latin-1")
+        text = data.decode("latin-1")
+    return parse_smard_csv(text, dt_util.get_default_time_zone())
 
 
-async def _async_import_smard(hass: HomeAssistant, path: str) -> None:
-    """SMARD-Preise als Stundenmittel in die Statistik des Preissensors schreiben."""
+async def _async_write_prices(hass: HomeAssistant, prices_eur_mwh: dict[datetime, float]) -> None:
+    """Stundenpreise (€/MWh) in die Statistik des Preissensors schreiben und neu berechnen."""
     entries = [e for e in hass.config_entries.async_entries(DOMAIN) if e.state is ConfigEntryState.LOADED]
     if not entries:
         raise vol.Invalid("Kein Eintrag von Dynamic Tariff Auditor geladen")
+    if not prices_eur_mwh:
+        raise vol.Invalid("Keine Preise zum Importieren")
     entry = entries[0]
-    tz = dt_util.get_default_time_zone()
-    text = await hass.async_add_executor_job(_read_file, path)
-    prices = parse_smard_csv(text, tz)
-    if not prices:
-        raise vol.Invalid("Keine gültigen Preise in der Datei")
 
-    # SMARD liefert €/MWh; in die Einheit des Preissensors umrechnen
+    # In die Einheit des Preissensors umrechnen
     unit = entry.data[CONF_PRICE_UNIT]
     factor = PRICE_UNIT_FACTORS["€/MWh"] / PRICE_UNIT_FACTORS[unit]
     metadata = StatisticMetaData(
@@ -100,8 +113,7 @@ async def _async_import_smard(hass: HomeAssistant, path: str) -> None:
         mean_type=StatisticMeanType.ARITHMETIC,
         has_sum=False,
     )
-    stats = [StatisticData(start=hour, mean=value * factor) for hour, value in prices.items()]
-    await get_instance(hass).async_add_executor_job(
-        import_statistics, get_instance(hass), metadata, stats
-    )
+    stats = [StatisticData(start=hour, mean=value * factor) for hour, value in prices_eur_mwh.items()]
+    instance = get_instance(hass)
+    await instance.async_add_executor_job(import_statistics, instance, metadata, stats)
     await _async_reset_and_reload(hass, entry)
