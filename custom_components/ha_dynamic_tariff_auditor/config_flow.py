@@ -31,6 +31,7 @@ from .const import (
     CONF_EVAL_START,
     CONF_NAME,
     CONF_PRICE,
+    CONF_POWER_UNIT,
     CONF_PRICE_UNIT,
     CONF_STATIC_TARIFFS,
     CONF_TARIFF_NAME,
@@ -38,6 +39,7 @@ from .const import (
     CONF_VALID_TO,
     CONF_WORK_PRICE_CT,
     DOMAIN,
+    POWER_UNITS,
     PRICE_UNITS,
 )
 
@@ -48,6 +50,9 @@ def _user_schema() -> vol.Schema:
             vol.Required(CONF_NAME, default="Tarifvergleich"): str,
             vol.Required(CONF_CONSUMPTION): EntitySelector(EntitySelectorConfig(domain="sensor")),
             vol.Required(CONF_PRICE): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Required(CONF_POWER_UNIT, default="W"): SelectSelector(
+                SelectSelectorConfig(options=POWER_UNITS, mode=SelectSelectorMode.DROPDOWN)
+            ),
             vol.Required(CONF_PRICE_UNIT, default="ct/kWh"): SelectSelector(
                 SelectSelectorConfig(options=PRICE_UNITS, mode=SelectSelectorMode.DROPDOWN)
             ),

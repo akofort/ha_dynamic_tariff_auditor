@@ -38,12 +38,30 @@ def test_energy_cost_static_and_dynamic():
     prices = PriceSeries()
     prices.add(ts(2025, 1, 1), 0.10)
     ev = make(prices=prices, start=ts(2025, 1, 1, 0))
-    ev.update_meter(ts(2025, 1, 1, 0), 100.0)  # Baseline
-    ev.update_meter(ts(2025, 1, 1, 1), 110.0)  # +10 kWh
+    ev.update_power(ts(2025, 1, 1, 0), 10.0)  # 10 kW ab 00:00
+    ev.update_power(ts(2025, 1, 1, 1), 0.0)  # 1 Stunde -> 10 kWh
     t = ev.totals()
     assert t.kwh == pytest.approx(10.0)
     assert t.static_energy == pytest.approx(3.0)
     assert t.dyn_energy == pytest.approx(1.5)  # 10 * (0.10 + 0.05)
+
+
+def test_tick_accrues_without_new_values():
+    prices = PriceSeries()
+    prices.add(ts(2025, 1, 1), 0.10)
+    ev = make(prices=prices, start=ts(2025, 1, 1))
+    ev.update_power(ts(2025, 1, 1, 0), 2.0)
+    ev.tick(ts(2025, 1, 1, 0, 30))  # 30 min à 2 kW = 1 kWh
+    assert ev.totals().kwh == pytest.approx(1.0)
+
+
+def test_negative_power_is_not_consumption():
+    prices = PriceSeries()
+    prices.add(ts(2025, 1, 1), 0.10)
+    ev = make(prices=prices, start=ts(2025, 1, 1))
+    ev.update_power(ts(2025, 1, 1, 0), -3.0)  # Einspeisung
+    ev.update_power(ts(2025, 1, 1, 1), 0.0)
+    assert ev.totals().kwh == pytest.approx(0.0)
 
 
 def test_base_fee_prorated_per_month():
@@ -63,26 +81,21 @@ def test_tariff_switch_between_validity_periods():
     prices = PriceSeries()
     prices.add(ts(2025, 1, 1), 0.10)
     ev = make(statics=statics, prices=prices, start=ts(2025, 3, 31))
-    ev.update_meter(ts(2025, 3, 31, 12), 0.0)
-    ev.update_meter(ts(2025, 3, 31, 13), 1.0)  # Alt
-    ev.update_meter(ts(2025, 4, 1, 13), 2.0)  # Neu
-    assert ev.buckets["Alt"].static_energy == pytest.approx(0.30)
-    assert ev.buckets["Neu"].static_energy == pytest.approx(0.25)
-
-
-def test_meter_reset_is_handled():
-    prices = PriceSeries()
-    prices.add(ts(2025, 1, 1), 0.10)
-    ev = make(prices=prices, start=ts(2025, 1, 1))
-    ev.update_meter(ts(2025, 1, 1, 1), 500.0)
-    ev.update_meter(ts(2025, 1, 1, 2), 3.0)  # Reset -> 3 kWh neu
-    assert ev.totals().kwh == pytest.approx(3.0)
+    ev.update_power(ts(2025, 3, 31, 12), 1.0)
+    ev.update_power(ts(2025, 3, 31, 13), 1.0)  # 1 kWh Alt
+    ev.update_power(ts(2025, 3, 31, 23), 1.0)  # 10 kWh Alt
+    ev.update_power(ts(2025, 4, 1, 0), 1.0)  # 1 kWh Alt (bis Mitternacht)
+    ev.update_power(ts(2025, 4, 1, 12), 1.0)
+    ev.update_power(ts(2025, 4, 1, 13), 0.0)  # 1 kWh Neu
+    assert ev.buckets["Alt"].kwh == pytest.approx(12.0)
+    assert ev.buckets["Alt"].static_energy == pytest.approx(3.6)
+    assert ev.buckets["Neu"].static_energy == pytest.approx(13 * 0.25)  # 00-12h + 12-13h
 
 
 def test_missing_price_is_counted_not_priced():
     ev = make(start=ts(2025, 1, 1))
-    ev.update_meter(ts(2025, 1, 1, 1), 0.0)
-    ev.update_meter(ts(2025, 1, 1, 2), 4.0)
+    ev.update_power(ts(2025, 1, 1, 1), 4.0)
+    ev.update_power(ts(2025, 1, 1, 2), 0.0)
     t = ev.totals()
     assert t.kwh_no_price == pytest.approx(4.0)
     assert t.dyn_energy == 0.0
@@ -90,8 +103,8 @@ def test_missing_price_is_counted_not_priced():
 
 def test_consumption_without_tariff_is_flagged():
     ev = make(statics=[], start=ts(2025, 1, 1))
-    ev.update_meter(ts(2025, 1, 1, 1), 0.0)
-    ev.update_meter(ts(2025, 1, 1, 2), 2.0)
+    ev.update_power(ts(2025, 1, 1, 1), 2.0)
+    ev.update_power(ts(2025, 1, 1, 2), 0.0)
     assert ev.buckets[NO_TARIFF].kwh_no_tariff == pytest.approx(2.0)
 
 
@@ -99,8 +112,8 @@ def test_state_roundtrip_and_summary():
     prices = PriceSeries()
     prices.add(ts(2025, 1, 1), 0.10)
     ev = make(prices=prices, start=ts(2025, 1, 1))
-    ev.update_meter(ts(2025, 1, 1, 1), 0.0)
-    ev.update_meter(ts(2025, 1, 1, 2), 5.0)
+    ev.update_power(ts(2025, 1, 1, 1), 5.0)
+    ev.update_power(ts(2025, 1, 1, 2), 0.0)
     state = ev.dump_state()
     ev2 = make(prices=prices, start=ts(2025, 1, 1))
     ev2.load_state(state)

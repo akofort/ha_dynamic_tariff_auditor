@@ -1,5 +1,7 @@
 """Koordiniert Historie (Recorder), Live-Updates und Persistenz.
 
+Quelle des Verbrauchs ist ein Leistungssensor (W oder kW).
+
 Historie in zwei Stufen:
 1. Erstlauf: Stunden-Statistiken (Tabelle `statistics`, bleibt dauerhaft in der DB)
    ab dem Auswertungsstart bis zur letzten vollen Stunde.
@@ -24,6 +26,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .calc import (
+    POWER_UNIT_FACTORS,
     PRICE_UNIT_FACTORS,
     DynamicTariff,
     Evaluator,
@@ -39,6 +42,7 @@ from .const import (
     CONF_DYN_SURCHARGE,
     CONF_EVAL_START,
     CONF_PRICE,
+    CONF_POWER_UNIT,
     CONF_PRICE_UNIT,
     CONF_STATIC_TARIFFS,
     CONF_TARIFF_NAME,
@@ -71,6 +75,7 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._consumption: str = d[CONF_CONSUMPTION]
         self._price_entity: str = d[CONF_PRICE]
         self._price_factor = PRICE_UNIT_FACTORS[d[CONF_PRICE_UNIT]]
+        self._power_factor = POWER_UNIT_FACTORS[d[CONF_POWER_UNIT]]
         self._tz = dt_util.get_default_time_zone()
         self._eval_start: date = date.fromisoformat(d[CONF_EVAL_START])
         self._statics = [
@@ -118,7 +123,7 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             unsub()
         self._unsubs.clear()
         if self._evaluator is not None:
-            self._evaluator.accrue_base(_time.time())
+            self._evaluator.tick(_time.time())
             await self._async_save()
 
     # --- Stufe 1: Stunden-Statistiken (langfristig in der DB) ----------------
@@ -130,7 +135,7 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             {self._consumption, self._price_entity},
             "hour",
             None,
-            {"change", "mean"},
+            {"mean"},
         )
 
     async def _async_backfill_statistics(self) -> None:
@@ -154,13 +159,15 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             mean = _to_float(row.get("mean"))
             if mean is not None:
                 self._prices.add(row["start"], mean * self._price_factor)
+        # Mittlere Leistung je Stunde (kW) x 1 h = kWh dieser Stunde
         for row in rows.get(self._consumption, []):
-            kwh = _to_float(row.get("change"))
-            if kwh is not None and kwh > 0:
-                ev.add_consumption(row["start"], kwh)
+            mean = _to_float(row.get("mean"))
+            if mean is not None and mean > 0:
+                ev.add_consumption(row["start"], mean * self._power_factor)
         ev.accrue_base(hour_end)
-        # Ab hier übernimmt der Zustandsverlauf; der Zählerstand wird neu als Basis gesetzt.
-        ev.last_meter = None
+        # Ab hier übernimmt der Zustandsverlauf; die Leistung wird neu als Basis gesetzt.
+        ev.last_power = None
+        ev.power_ts = None
         await self._async_save()
 
     # --- Stufe 2: Zustandsverlauf (Recorder-Retention) -----------------------
@@ -192,13 +199,13 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._prices.add(max(st.last_updated.timestamp(), start), value * self._price_factor)
 
         events = sorted(
-            (max(st.last_updated.timestamp(), start), value)
+            (max(st.last_updated.timestamp(), start), value * self._power_factor)
             for st in meter_states
             if (value := _to_float(st.state)) is not None
         )
-        for ts, reading in events:
-            ev.update_meter(ts, reading)
-        ev.accrue_base(now)
+        for ts, kw in events:
+            ev.update_power(ts, kw)
+        ev.tick(now)
         await self._async_save()
 
     # --- Live -------------------------------------------------------------
@@ -214,13 +221,13 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if event.data["entity_id"] == self._price_entity:
             self._prices.add(ts, value * self._price_factor)
         else:
-            self._evaluator.update_meter(ts, value)
+            self._evaluator.update_power(ts, value * self._power_factor)
         self.async_set_updated_data(self._snapshot())
 
     async def _async_handle_tick(self, now: datetime) -> None:
         if self._evaluator is None:
             return
-        self._evaluator.accrue_base(now.timestamp())
+        self._evaluator.tick(now.timestamp())
         self.async_set_updated_data(self._snapshot())
         await self._async_save()
 

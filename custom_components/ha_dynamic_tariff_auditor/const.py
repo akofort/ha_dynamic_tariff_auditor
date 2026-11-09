@@ -5,6 +5,7 @@ DOMAIN = "ha_dynamic_tariff_auditor"
 CONF_NAME = "name"
 CONF_CONSUMPTION = "consumption_entity"
 CONF_PRICE = "price_entity"
+CONF_POWER_UNIT = "power_unit"
 CONF_PRICE_UNIT = "price_unit"
 CONF_DYN_BASE = "dyn_base_fee"
 CONF_DYN_FACTOR = "dyn_factor"
@@ -20,3 +21,4 @@ CONF_WORK_PRICE_CT = "work_price_ct"
 CONF_ADD_MORE = "add_more"
 
 PRICE_UNITS = ["ct/kWh", "€/kWh", "€/MWh"]
+POWER_UNITS = ["W", "kW"]

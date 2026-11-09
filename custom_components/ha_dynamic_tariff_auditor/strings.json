@@ -3,16 +3,17 @@
     "step": {
       "user": {
         "title": "Dynamischer Tarif",
-        "description": "Verbrauchszähler (kWh, kumulativ) und Börsenpreis-Sensor. Historie wird aus dem Recorder gelesen.",
+        "description": "Leistungssensor (W oder kW, Netzbezug, positiv = Bezug) und Börsenpreis-Sensor. Die Historie wird aus der Langzeit-Statistik des Recorders gelesen.",
         "data": {
           "name": "Name",
-          "consumption_entity": "Netzbezug-Zähler (kWh)",
+          "consumption_entity": "Netzbezug-Leistungssensor",
           "price_entity": "Börsenpreis-Sensor",
           "price_unit": "Einheit des Preissensors",
           "dyn_base_fee": "Grundpreis dynamischer Tarif (€/Monat)",
           "dyn_factor": "Faktor auf Börsenpreis",
           "dyn_surcharge_ct": "Aufschlag (ct/kWh, nach Faktor)",
-          "eval_start": "Auswertung ab"
+          "eval_start": "Auswertung ab",
+          "power_unit": "Einheit des Leistungssensors"
         }
       },
       "static": {
@@ -34,16 +35,32 @@
   },
   "entity": {
     "sensor": {
-      "dyn_cost": {"name": "Kosten dynamisch"},
-      "static_cost": {"name": "Kosten statisch"},
-      "difference": {"name": "Ersparnis dynamisch"},
-      "savings_pct": {"name": "Ersparnis in Prozent"},
-      "kwh": {"name": "Verbrauch im Zeitraum"},
-      "avg_dyn_ct": {"name": "Ø Preis dynamisch"},
-      "avg_static_ct": {"name": "Ø Preis statisch"}
+      "dyn_cost": {
+        "name": "Kosten dynamisch"
+      },
+      "static_cost": {
+        "name": "Kosten statisch"
+      },
+      "difference": {
+        "name": "Ersparnis dynamisch"
+      },
+      "savings_pct": {
+        "name": "Ersparnis in Prozent"
+      },
+      "kwh": {
+        "name": "Verbrauch im Zeitraum"
+      },
+      "avg_dyn_ct": {
+        "name": "Ø Preis dynamisch"
+      },
+      "avg_static_ct": {
+        "name": "Ø Preis statisch"
+      }
     },
     "binary_sensor": {
-      "dynamic_cheaper": {"name": "Dynamisch günstiger"}
+      "dynamic_cheaper": {
+        "name": "Dynamisch günstiger"
+      }
     }
   }
 }

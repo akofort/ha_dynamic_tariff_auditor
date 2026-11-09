@@ -12,6 +12,7 @@ SECONDS_PER_MONTH = 30.4375 * 86400
 NO_TARIFF = "ohne Tarif"
 
 PRICE_UNIT_FACTORS = {"ct/kWh": 0.01, "€/kWh": 1.0, "€/MWh": 0.001}
+POWER_UNIT_FACTORS = {"W": 0.001, "kW": 1.0}  # -> kW
 
 
 @dataclass(frozen=True)
@@ -81,6 +82,8 @@ class Bucket:
 
 
 class Evaluator:
+    """Bewertet Verbrauch (Leistung in kW, Integration über die Zeit) gegen beide Tarife."""
+
     def __init__(
         self,
         statics: list[StaticTariff],
@@ -93,8 +96,9 @@ class Evaluator:
         self.dynamic = dynamic
         self.prices = prices
         self.tz = tz
-        self.last_ts = start_ts
-        self.last_meter: float | None = None
+        self.last_ts = start_ts  # Stand der Grundgebühren
+        self.last_power: float | None = None  # kW seit power_ts
+        self.power_ts: float | None = None
         self.buckets: dict[str, Bucket] = {}
 
     # --- Hilfsfunktionen -------------------------------------------------
@@ -140,20 +144,25 @@ class Evaluator:
         else:
             b.dyn_energy += kwh * self.dynamic.price(spot)
 
-    def update_meter(self, ts: float, reading: float) -> None:
-        """Stand eines kumulativen Zählers (total_increasing) verarbeiten."""
-        if self.last_meter is None:
-            self.last_meter = reading
-            self.accrue_base(ts)
-            return
-        delta = reading - self.last_meter
-        if delta < 0:  # Zählerreset
-            delta = reading
-        self.last_meter = reading
-        if delta > 0:
-            self.add_consumption(ts, delta)
+    def update_power(self, ts: float, kw: float) -> None:
+        """Neuer Leistungswert (kW) ab `ts`. Der vorherige Wert gilt bis `ts`.
+
+        Negative Leistung (Einspeisung) zählt nicht als Bezug.
+        """
+        self.accrue_base(ts)
+        if self.last_power is not None and self.power_ts is not None and ts > self.power_ts:
+            kwh = max(self.last_power, 0.0) * (ts - self.power_ts) / 3600
+            if kwh > 0:
+                self.add_consumption(self.power_ts, kwh)
+        self.last_power = kw
+        self.power_ts = ts
+
+    def tick(self, now: float) -> None:
+        """Zeitlichen Fortschritt verbuchen, auch ohne neue Sensorwerte."""
+        if self.last_power is not None:
+            self.update_power(now, self.last_power)
         else:
-            self.accrue_base(ts)
+            self.accrue_base(now)
 
     # --- Auswertung / Persistenz ----------------------------------------
     def totals(self) -> Bucket:
@@ -166,13 +175,15 @@ class Evaluator:
     def dump_state(self) -> dict:
         return {
             "last_ts": self.last_ts,
-            "last_meter": self.last_meter,
+            "last_power": self.last_power,
+            "power_ts": self.power_ts,
             "buckets": {k: asdict(v) for k, v in self.buckets.items()},
         }
 
     def load_state(self, data: dict) -> None:
         self.last_ts = data["last_ts"]
-        self.last_meter = data["last_meter"]
+        self.last_power = data["last_power"]
+        self.power_ts = data["power_ts"]
         self.buckets = {k: Bucket(**v) for k, v in data["buckets"].items()}
 
 
