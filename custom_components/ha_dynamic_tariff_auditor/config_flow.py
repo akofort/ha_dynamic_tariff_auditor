@@ -7,6 +7,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.selector import (
     BooleanSelector,
     DateSelector,
@@ -15,13 +16,14 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
-    SelectSelector,
-    SelectSelectorConfig,
-    SelectSelectorMode,
 )
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_POWER_UNIT,
+    CONF_PRICE_UNIT,
+    POWER_UNITS,
+    PRICE_UNITS,
     CONF_ADD_MORE,
     CONF_BASE_FEE,
     CONF_CONSUMPTION,
@@ -31,17 +33,19 @@ from .const import (
     CONF_EVAL_START,
     CONF_NAME,
     CONF_PRICE,
-    CONF_POWER_UNIT,
-    CONF_PRICE_UNIT,
     CONF_STATIC_TARIFFS,
     CONF_TARIFF_NAME,
     CONF_VALID_FROM,
     CONF_VALID_TO,
     CONF_WORK_PRICE_CT,
     DOMAIN,
-    POWER_UNITS,
-    PRICE_UNITS,
 )
+
+
+def _entity_unit(hass: HomeAssistant, entity_id: str) -> str | None:
+    """Einheit direkt aus dem Sensor lesen (z. B. W, kW, ct/kWh)."""
+    state = hass.states.get(entity_id)
+    return state.attributes.get("unit_of_measurement") if state else None
 
 
 def _user_schema() -> vol.Schema:
@@ -50,12 +54,6 @@ def _user_schema() -> vol.Schema:
             vol.Required(CONF_NAME, default="Tarifvergleich"): str,
             vol.Required(CONF_CONSUMPTION): EntitySelector(EntitySelectorConfig(domain="sensor")),
             vol.Required(CONF_PRICE): EntitySelector(EntitySelectorConfig(domain="sensor")),
-            vol.Required(CONF_POWER_UNIT, default="W"): SelectSelector(
-                SelectSelectorConfig(options=POWER_UNITS, mode=SelectSelectorMode.DROPDOWN)
-            ),
-            vol.Required(CONF_PRICE_UNIT, default="ct/kWh"): SelectSelector(
-                SelectSelectorConfig(options=PRICE_UNITS, mode=SelectSelectorMode.DROPDOWN)
-            ),
             vol.Required(CONF_DYN_BASE, default=0.0): NumberSelector(
                 NumberSelectorConfig(min=0, max=1000, step=0.01,
                                      unit_of_measurement="€/Monat", mode=NumberSelectorMode.BOX)
@@ -100,7 +98,16 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
-            self._general = user_input
+            errors: dict[str, str] = {}
+            power_unit = _entity_unit(self.hass, user_input[CONF_CONSUMPTION])
+            price_unit = _entity_unit(self.hass, user_input[CONF_PRICE])
+            if power_unit not in POWER_UNITS:
+                errors[CONF_CONSUMPTION] = "unsupported_unit"
+            if price_unit not in PRICE_UNITS:
+                errors[CONF_PRICE] = "unsupported_unit"
+            if errors:
+                return self.async_show_form(step_id="user", data_schema=_user_schema(), errors=errors)
+            self._general = {**user_input, CONF_POWER_UNIT: power_unit, CONF_PRICE_UNIT: price_unit}
             return await self.async_step_static()
         return self.async_show_form(step_id="user", data_schema=_user_schema())
 
