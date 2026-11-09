@@ -1,6 +1,7 @@
 """Config-Flow: dynamischer Tarif, danach beliebig viele statische Zeiträume."""
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import Any
 
@@ -42,6 +43,9 @@ from .const import (
     CONF_WORK_PRICE_CT,
     DOMAIN,
 )
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _entity_unit(hass: HomeAssistant, entity_id: str) -> str | None:
@@ -99,6 +103,13 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
         self._static: list[dict[str, Any]] = []
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        try:
+            return await self._async_step_user(user_input)
+        except Exception:
+            _LOGGER.exception("Fehler im Schritt 'user' (Version %s), Eingaben: %s", VERSION, user_input)
+            raise
+
+    async def _async_step_user(self, user_input: dict[str, Any] | None) -> ConfigFlowResult:
         if user_input is not None:
             errors: dict[str, str] = {}
             cons_unit = _entity_unit(self.hass, user_input[CONF_CONSUMPTION])
@@ -128,6 +139,13 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_static(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        try:
+            return await self._async_step_static(user_input)
+        except Exception:
+            _LOGGER.exception("Fehler im Schritt 'static' (Version %s), Eingaben: %s", VERSION, user_input)
+            raise
+
+    async def _async_step_static(self, user_input: dict[str, Any] | None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             valid_from = date.fromisoformat(user_input[CONF_VALID_FROM])
