@@ -131,3 +131,13 @@ def test_energy_meter_delta_and_reset():
     ev.update_meter(ts(2025, 1, 1, 1), 103.5)  # +3.5 kWh
     ev.update_meter(ts(2025, 1, 1, 2), 2.0)  # Reset -> 2 kWh neu
     assert ev.totals().kwh == pytest.approx(5.5)
+
+
+def test_missing_price_excluded_from_both_sides():
+    ev = make(start=ts(2025, 1, 1))  # keine Preise vorhanden
+    ev.update_power(ts(2025, 1, 1, 1), 4.0)
+    ev.update_power(ts(2025, 1, 1, 2), 0.0)
+    t = ev.totals()
+    assert t.kwh == pytest.approx(4.0)
+    assert t.static_energy == 0.0
+    assert t.dyn_energy == 0.0

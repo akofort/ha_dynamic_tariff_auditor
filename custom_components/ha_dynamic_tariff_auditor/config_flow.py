@@ -87,7 +87,7 @@ def _static_schema() -> vol.Schema:
                                      unit_of_measurement="€/Monat", mode=NumberSelectorMode.BOX)
             ),
             vol.Required(CONF_WORK_PRICE_CT): NumberSelector(
-                NumberSelectorConfig(min=0, max=200, step=0.001,
+                NumberSelectorConfig(min=0, max=200, step=0.01,
                                      unit_of_measurement="ct/kWh", mode=NumberSelectorMode.BOX)
             ),
             vol.Required(CONF_ADD_MORE, default=False): BooleanSelector(),

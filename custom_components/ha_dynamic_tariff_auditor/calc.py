@@ -132,19 +132,21 @@ class Evaluator:
         self.last_ts = max(self.last_ts, until)
 
     def add_consumption(self, ts: float, kwh: float) -> None:
+        """kWh verbuchen. Fehlt Tarif oder Preis, zählt die Menge auf BEIDEN Seiten nicht,
+        sonst würde ein fehlender Preis (0 €) die Ersparnis verfälschen."""
         self.accrue_base(ts)
         tariff = self.tariff_at(ts)
+        spot = self.prices.price_at(ts)
         b = self._bucket(tariff.name if tariff else NO_TARIFF)
         b.kwh += kwh
-        if tariff:
-            b.static_energy += kwh * tariff.work_price
-        else:
+        if tariff is None:
             b.kwh_no_tariff += kwh
-        spot = self.prices.price_at(ts)
         if spot is None:
             b.kwh_no_price += kwh
-        else:
-            b.dyn_energy += kwh * self.dynamic.price(spot)
+        if tariff is None or spot is None:
+            return
+        b.static_energy += kwh * tariff.work_price
+        b.dyn_energy += kwh * self.dynamic.price(spot)
 
     def update_power(self, ts: float, kw: float) -> None:
         """Neuer Leistungswert (kW) ab `ts`. Der vorherige Wert gilt bis `ts`.
