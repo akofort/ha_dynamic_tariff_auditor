@@ -38,17 +38,17 @@ SENSORS: tuple[SensorEntityDescription, ...] = (
     ),
     SensorEntityDescription(
         key="month_dyn_cost", translation_key="month_dyn_cost",
-        device_class=SensorDeviceClass.MONETARY, native_unit_of_measurement=EUR,
+        native_unit_of_measurement=EUR,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
         key="month_static_cost", translation_key="month_static_cost",
-        device_class=SensorDeviceClass.MONETARY, native_unit_of_measurement=EUR,
+        native_unit_of_measurement=EUR,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
         key="month_difference", translation_key="month_difference",
-        device_class=SensorDeviceClass.MONETARY, native_unit_of_measurement=EUR,
+        native_unit_of_measurement=EUR,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
