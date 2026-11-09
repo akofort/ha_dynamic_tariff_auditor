@@ -10,10 +10,14 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
 
+import asyncio
+
 import aiohttp
 
 API_URL = "https://api.energy-charts.info/v2/price"
-CHUNK_DAYS = 31
+CHUNK_DAYS = 92  # weniger Anfragen, die API begrenzt die Rate
+PAUSE_SECONDS = 2.0
+RETRY_DELAYS = (5, 15, 30, 60)  # bei HTTP 429
 
 
 def parse_energy_charts(payload: dict[str, Any]) -> dict[datetime, float]:
@@ -36,15 +40,25 @@ def _chunks(start: date, end_excl: date):
         cur = nxt
 
 
+async def _get_with_retry(session: aiohttp.ClientSession, params: dict[str, str]) -> dict[str, Any]:
+    for delay in (*RETRY_DELAYS, None):
+        async with session.get(API_URL, params=params, timeout=aiohttp.ClientTimeout(total=60)) as resp:
+            if resp.status == 200:
+                return await resp.json()
+            if resp.status != 429 or delay is None:
+                raise ValueError(f"Energy-Charts antwortet mit HTTP {resp.status} (Zeitraum {params['start']} bis {params['end']})")
+        await asyncio.sleep(delay)
+    raise ValueError("Energy-Charts: Rate-Limit, bitte später erneut versuchen")
+
+
 async def fetch_energy_charts(session: aiohttp.ClientSession, start: date, end: date) -> dict[datetime, float]:
     """Preise von `start` bis einschließlich `end` (Tage, Ortszeit)."""
     result: dict[datetime, float] = {}
-    for c_start, c_end in _chunks(start, end + timedelta(days=1)):
+    for i, (c_start, c_end) in enumerate(_chunks(start, end + timedelta(days=1))):
+        if i:
+            await asyncio.sleep(PAUSE_SECONDS)
         params = {"bzn": "DE-LU", "start": c_start.isoformat(), "end": (c_end - timedelta(days=1)).isoformat()}
-        async with session.get(API_URL, params=params, timeout=aiohttp.ClientTimeout(total=60)) as resp:
-            if resp.status != 200:
-                raise ValueError(f"Energy-Charts antwortet mit HTTP {resp.status}")
-            payload = await resp.json()
+        payload = await _get_with_retry(session, params)
         result.update(parse_energy_charts(payload))
     if not result:
         raise ValueError("Keine Preise für den Zeitraum erhalten")
