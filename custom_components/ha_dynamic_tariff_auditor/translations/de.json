@@ -63,6 +63,18 @@
       },
       "month_difference": {
         "name": "Ersparnis (laufender Monat)"
+      },
+      "cfg_work_static_ct": {
+        "name": "Arbeitspreis statisch (Eingabe)"
+      },
+      "cfg_base_static": {
+        "name": "Grundpreis statisch (Eingabe)"
+      },
+      "cfg_base_dyn": {
+        "name": "Grundpreis dynamisch (Eingabe)"
+      },
+      "cfg_surcharge_dyn_ct": {
+        "name": "Aufschlag dynamisch (Eingabe)"
       }
     },
     "binary_sensor": {

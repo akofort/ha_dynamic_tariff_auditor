@@ -274,6 +274,12 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data = summarize(self._evaluator.totals())
         data["buckets"] = {n: summarize(b) for n, b in self._evaluator.buckets.items()}
         data.update(month_summary(self._evaluator, _time.time()))
+        # Eingegebene Werte (aktuell gültiger statischer Tarif), zur Kontrolle
+        now_tariff = self._evaluator.tariff_at(_time.time())
+        data["cfg_work_static_ct"] = now_tariff.work_price * 100 if now_tariff else None
+        data["cfg_base_static"] = now_tariff.base_fee_month if now_tariff else None
+        data["cfg_base_dyn"] = self._dynamic.base_fee_month
+        data["cfg_surcharge_dyn_ct"] = self._dynamic.surcharge * 100
         months = {k: summarize(b) for k, b in sorted(self._evaluator.months.items())}
         data["monate"] = months
         data["jahre"] = {k: summarize(b) for k, b in sorted(yearly(self._evaluator.months).items())}

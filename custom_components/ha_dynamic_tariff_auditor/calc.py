@@ -230,8 +230,9 @@ def summarize(t: Bucket) -> dict:
         "difference": diff,
         "savings_pct": diff / static * 100 if static > 0 else None,
         # Arbeitspreis (ohne Grundgebühr), nur über kWh mit Tarif und Preis
-        "avg_static_ct": t.static_energy / t.kwh_priced * 100 if t.kwh_priced > 0 else None,
-        "avg_dyn_ct": t.dyn_energy / t.kwh_priced * 100 if t.kwh_priced > 0 else None,
+        # Nur aussagekräftig, wenn mindestens die Hälfte der kWh einen Preis hat
+        "avg_static_ct": t.static_energy / t.kwh_priced * 100 if t.kwh_priced >= 0.5 * t.kwh > 0 else None,
+        "avg_dyn_ct": t.dyn_energy / t.kwh_priced * 100 if t.kwh_priced >= 0.5 * t.kwh > 0 else None,
         "kwh_priced": t.kwh_priced,
         "kwh_no_tariff": t.kwh_no_tariff,
         "kwh_no_price": t.kwh_no_price,

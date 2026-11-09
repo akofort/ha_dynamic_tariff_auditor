@@ -21,6 +21,22 @@ EUR = "€"
 
 SENSORS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
+        key="cfg_work_static_ct", translation_key="cfg_work_static_ct",
+        native_unit_of_measurement="ct/kWh", state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="cfg_base_static", translation_key="cfg_base_static",
+        native_unit_of_measurement="€/Monat", state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="cfg_base_dyn", translation_key="cfg_base_dyn",
+        native_unit_of_measurement="€/Monat", state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="cfg_surcharge_dyn_ct", translation_key="cfg_surcharge_dyn_ct",
+        native_unit_of_measurement="ct/kWh", state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
         key="month_dyn_cost", translation_key="month_dyn_cost",
         device_class=SensorDeviceClass.MONETARY, native_unit_of_measurement=EUR,
         state_class=SensorStateClass.MEASUREMENT,
