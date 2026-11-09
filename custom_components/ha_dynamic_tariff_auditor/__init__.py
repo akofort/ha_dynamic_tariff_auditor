@@ -8,6 +8,7 @@ import voluptuous as vol
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.models import StatisticData, StatisticMeanType, StatisticMetaData
+from homeassistant.components.recorder.db_schema import Statistics
 from homeassistant.components.recorder.statistics import import_statistics
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import Platform
@@ -115,5 +116,5 @@ async def _async_write_prices(hass: HomeAssistant, prices_eur_mwh: dict[datetime
     )
     stats = [StatisticData(start=hour, mean=value * factor) for hour, value in prices_eur_mwh.items()]
     instance = get_instance(hass)
-    await instance.async_add_executor_job(import_statistics, instance, metadata, stats)
+    await instance.async_add_executor_job(import_statistics, instance, metadata, stats, Statistics)
     await _async_reset_and_reload(hass, entry)
