@@ -93,7 +93,13 @@ class DynamicTariffAuditorSensor(DynamicTariffAuditorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        if self.entity_description.key != "difference" or not self.coordinator.data:
+        if not self.coordinator.data:
             return None
-        # Aufschlüsselung je Tarifzeitraum (mehrere Gültigkeitszeiträume)
-        return {"zeitraeume": self.coordinator.data.get("buckets", {})}
+        if self.entity_description.key == "dyn_cost":
+            # Monats- und Jahreswerte inkl. anteiliger Grundgebühr (für Karten/Auswertungen)
+            return {"monate": self.coordinator.data.get("monate", {}),
+                    "jahre": self.coordinator.data.get("jahre", {})}
+        if self.entity_description.key == "difference":
+            # Aufschlüsselung je Tarifzeitraum (mehrere Gültigkeitszeiträume)
+            return {"zeitraeume": self.coordinator.data.get("buckets", {})}
+        return None

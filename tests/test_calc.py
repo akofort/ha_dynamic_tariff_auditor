@@ -166,3 +166,15 @@ def test_average_prices_are_energy_only_and_priced_only():
     s = summarize(ev.totals())
     assert s["avg_static_ct"] == pytest.approx(30.0)  # 0,30 €/kWh
     assert s["avg_dyn_ct"] == pytest.approx(15.0)  # 0,10 + 0,05 €/kWh
+
+
+def test_base_fee_split_across_months():
+    from calc import yearly
+
+    ev = make(start=ts(2025, 1, 16))
+    ev.accrue_base(ts(2025, 2, 16))
+    jan = ev.months["2025-01"].static_base
+    feb = ev.months["2025-02"].static_base
+    assert jan == pytest.approx(10.0 * 16 * 86400 / SECONDS_PER_MONTH)  # 16.–31. Januar
+    assert feb == pytest.approx(10.0 * 15 * 86400 / SECONDS_PER_MONTH)  # 1.–15. Februar
+    assert yearly(ev.months)["2025"].static_base == pytest.approx(jan + feb)

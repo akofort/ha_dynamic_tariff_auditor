@@ -127,9 +127,11 @@ class Evaluator:
             secs = end - t
             tariff = self.tariff_at(t)
             b = self._bucket(tariff.name if tariff else NO_TARIFF)
-            if tariff:
-                b.static_base += tariff.base_fee_month * secs / SECONDS_PER_MONTH
-            b.dyn_base += self.dynamic.base_fee_month * secs / SECONDS_PER_MONTH
+            mb = self.months.setdefault(local_day.strftime("%Y-%m"), Bucket())
+            for target in (b, mb):
+                if tariff:
+                    target.static_base += tariff.base_fee_month * secs / SECONDS_PER_MONTH
+                target.dyn_base += self.dynamic.base_fee_month * secs / SECONDS_PER_MONTH
             t = end
         self.last_ts = max(self.last_ts, until)
 
@@ -252,3 +254,13 @@ def month_summary(ev: "Evaluator", now_ts: float) -> dict:
         "month_difference": diff,
         "month_kwh": m.kwh,
     }
+
+
+def yearly(months: dict[str, Bucket]) -> dict[str, Bucket]:
+    """Monatswerte zu Jahren summieren ("YYYY" -> Bucket)."""
+    years: dict[str, Bucket] = {}
+    for key, m in months.items():
+        y = years.setdefault(key[:4], Bucket())
+        for f in fields(Bucket):
+            setattr(y, f.name, getattr(y, f.name) + getattr(m, f.name))
+    return years

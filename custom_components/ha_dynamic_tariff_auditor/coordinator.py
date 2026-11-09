@@ -33,6 +33,7 @@ from .calc import (
     StaticTariff,
     month_summary,
     summarize,
+    yearly,
 )
 from .const import (
     CONF_BASE_FEE,
@@ -261,4 +262,7 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data = summarize(self._evaluator.totals())
         data["buckets"] = {n: summarize(b) for n, b in self._evaluator.buckets.items()}
         data.update(month_summary(self._evaluator, _time.time()))
+        months = {k: summarize(b) for k, b in sorted(self._evaluator.months.items())}
+        data["monate"] = months
+        data["jahre"] = {k: summarize(b) for k, b in sorted(yearly(self._evaluator.months).items())}
         return data
