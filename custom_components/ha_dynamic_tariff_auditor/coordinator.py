@@ -103,11 +103,23 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}")
         self._unsubs: list[Any] = []
 
+    @staticmethod
+    def _is_current_state(stored: dict[str, Any]) -> bool:
+        """Stand enthält alle Felder der aktuellen Version."""
+        if "months" not in stored:
+            return False
+        return all("kwh_priced" in b for b in stored.get("buckets", {}).values())
+
     # --- Start / Stop ----------------------------------------------------
     async def async_setup(self) -> None:
         start_ts = datetime.combine(self._eval_start, time(0), tzinfo=self._tz).timestamp()
         self._evaluator = Evaluator(self._statics, self._dynamic, self._prices, self._tz, start_ts)
         stored = await self._store.async_load()
+        if stored and not self._is_current_state(stored):
+            # Stand aus einer älteren Version: fehlende Monats- und Arbeitspreisdaten.
+            _LOGGER.info("Gespeicherter Stand ist veraltet, Neuberechnung ab Auswertungsbeginn")
+            await self._store.async_remove()
+            stored = None
         if stored:
             self._evaluator.load_state(stored)
         else:
