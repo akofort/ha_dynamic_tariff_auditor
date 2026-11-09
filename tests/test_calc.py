@@ -178,3 +178,22 @@ def test_base_fee_split_across_months():
     assert jan == pytest.approx(10.0 * 16 * 86400 / SECONDS_PER_MONTH)  # 16.–31. Januar
     assert feb == pytest.approx(10.0 * 15 * 86400 / SECONDS_PER_MONTH)  # 1.–15. Februar
     assert yearly(ev.months)["2025"].static_base == pytest.approx(jan + feb)
+
+
+def test_smard_parser_hourly_mean_and_missing_values():
+    import sys
+    sys.path.insert(0, "/home/user/custom_components/ha_dynamic_tariff_auditor")
+    from smard import parse_smard_csv
+
+    csv = (
+        "Datum;Uhrzeit;Deutschland/Luxemburg[€/MWh] Originalauflösungen\n"
+        "09.11.2026;00:00;1.234,50\n"
+        "09.11.2026;00:15;-\n"
+        "09.11.2026;00:30;100,00\n"
+        "09.11.2026;01:00;50,00\n"
+    )
+    res = parse_smard_csv(csv, TZ)
+    hours = list(res.values())
+    assert hours[0] == pytest.approx((1234.5 + 100.0) / 2)  # Fehlwert ausgelassen
+    assert hours[1] == pytest.approx(50.0)
+    assert len(res) == 2

@@ -1,0 +1,11 @@
+import_smard_prices:
+  name: SMARD-Preise importieren
+  description: Börsenpreise aus einer SMARD-CSV in die Statistik des Preissensors schreiben und danach neu berechnen.
+  fields:
+    file:
+      name: Datei
+      description: Pfad zur CSV-Datei auf dem HA-Host, z. B. /config/www/smard.csv
+      required: true
+      example: /config/www/smard.csv
+      selector:
+        text:
