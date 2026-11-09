@@ -44,6 +44,18 @@ Der Preis wird aus dem Sensor so berechnet:
 
 Den Abgleich macht man am besten mit der Stromrechnung. Stimmt der Betrag nicht, passt meist Faktor oder Aufschlag nicht.
 
+## Dashboard-Beispiel
+
+Die Ansicht „Tarif“ mit Gesamtkosten, laufendem Monat, Arbeitspreisen sowie Monats- und Jahrestabelle liegt als YAML unter [`docs/dashboard-tarif.yaml`](docs/dashboard-tarif.yaml). Die Entitäts-IDs gelten für einen Eintrag namens „Tarifvergleich“ und müssen bei dir eventuell angepasst werden.
+
+![Dashboard-Ansicht Tarif](docs/screenshots/dashboard-tarif.png)
+
+![Jahresübersicht](docs/screenshots/dashboard-jahre.png)
+
+*Hinweis: Die Screenshots stammen von Version 0.3.2. Die Werte aus dieser Version sind teilweise fehlerhaft (siehe Changelog 0.3.3). Aktuelle Screenshots folgen.*
+
+Einbinden: Dashboard „Home“ → Bearbeiten → Ansicht hinzufügen, dann den Inhalt der YAML-Datei übernehmen (Ansicht als YAML bearbeiten).
+
 ## Entwicklung und Tests
 
     pip install pytest

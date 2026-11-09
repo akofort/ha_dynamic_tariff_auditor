@@ -1,0 +1,66 @@
+# Beispiel: Ansicht "Tarif" für ein Dashboard (Sections-Ansicht)
+# Entitäts-IDs an deine Installation anpassen (Präfix = Name des Eintrags, hier "Tarifvergleich").
+title: Tarif
+path: tarif
+icon: mdi:currency-eur
+type: sections
+max_columns: 3
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: Dynamisch vs. statisch
+        heading_style: title
+      - type: entities
+        title: Gesamter Zeitraum
+        entities:
+          - entity: binary_sensor.kontrollzentrum_tarifvergleich_dynamisch_gunstiger
+            name: Dynamisch günstiger
+          - sensor.kontrollzentrum_tarifvergleich_kosten_dynamisch
+          - sensor.kontrollzentrum_tarifvergleich_kosten_statisch
+          - sensor.kontrollzentrum_tarifvergleich_ersparnis_dynamisch
+          - sensor.kontrollzentrum_tarifvergleich_ersparnis_in_prozent
+          - sensor.kontrollzentrum_tarifvergleich_verbrauch_im_zeitraum
+  - type: grid
+    cards:
+      - type: heading
+        heading: Laufender Monat (volle Grundgebühr)
+        heading_style: subtitle
+      - type: entities
+        entities:
+          - sensor.kontrollzentrum_tarifvergleich_kosten_dynamisch_laufender_monat
+          - sensor.kontrollzentrum_tarifvergleich_kosten_statisch_laufender_monat
+          - sensor.kontrollzentrum_tarifvergleich_ersparnis_laufender_monat
+      - type: heading
+        heading: Arbeitspreis (ohne Grundgebühr)
+        heading_style: subtitle
+      - type: entities
+        entities:
+          - entity: sensor.kontrollzentrum_tarifvergleich_o_preis_dynamisch
+            name: Dynamisch
+          - entity: sensor.kontrollzentrum_tarifvergleich_o_preis_statisch
+            name: Statisch
+  - type: grid
+    cards:
+      - type: heading
+        heading: Monate
+        heading_style: title
+      - type: markdown
+        content: >-
+          {% set m = state_attr('sensor.kontrollzentrum_tarifvergleich_kosten_dynamisch','monate') or {} %}
+          | Monat | kWh | Dynamisch € | Statisch € | Ersparnis € |
+          |---|---|---|---|---|
+          {% for k, v in m.items() %}| {{ k }} | {{ '%.2f' % v.kwh }} | {{ '%.2f' % v.dyn_cost }} | {{ '%.2f' % v.static_cost }} | {{ '%.2f' % v.difference }} |
+          {% endfor %}
+  - type: grid
+    cards:
+      - type: heading
+        heading: Jahre
+        heading_style: title
+      - type: markdown
+        content: >-
+          {% set j = state_attr('sensor.kontrollzentrum_tarifvergleich_kosten_dynamisch','jahre') or {} %}
+          | Jahr | kWh | Dynamisch € | Statisch € | Ersparnis € |
+          |---|---|---|---|---|
+          {% for k, v in j.items() %}| {{ k }} | {{ '%.2f' % v.kwh }} | {{ '%.2f' % v.dyn_cost }} | {{ '%.2f' % v.static_cost }} | {{ '%.2f' % v.difference }} |
+          {% endfor %}
