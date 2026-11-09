@@ -110,6 +110,7 @@ async def _async_write_prices(hass: HomeAssistant, prices_eur_mwh: dict[datetime
         statistic_id=entry.data[CONF_PRICE],
         name=None,
         unit_of_measurement=unit,
+        unit_class=None,
         has_mean=True,
         mean_type=StatisticMeanType.ARITHMETIC,
         has_sum=False,
