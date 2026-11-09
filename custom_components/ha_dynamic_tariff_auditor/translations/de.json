@@ -90,7 +90,8 @@
         "menu_options": {
           "dynamic": "Dynamischer Tarif (Grundpreis, Faktor, Aufschlag)",
           "static_add": "Statischen Tarif hinzufügen",
-          "static_remove": "Statischen Tarif entfernen"
+          "static_remove": "Statischen Tarif entfernen",
+          "show": "Eingegebene Werte anzeigen"
         }
       },
       "dynamic": {
@@ -119,6 +120,10 @@
         "data": {
           "tariff": "Tarif"
         }
+      },
+      "show": {
+        "title": "Eingegebene Werte",
+        "description": "{werte}"
       }
     },
     "error": {

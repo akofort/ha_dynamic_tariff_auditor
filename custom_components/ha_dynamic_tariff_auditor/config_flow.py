@@ -212,7 +212,34 @@ class DynamicTariffAuditorOptionsFlow(OptionsFlow):
     """Tarife nachträglich ändern. Nach dem Speichern wird ab Auswertungsbeginn neu gerechnet."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="init", menu_options=["dynamic", "static_add", "static_remove"])
+        return self.async_show_menu(
+            step_id="init", menu_options=["show", "dynamic", "static_add", "static_remove"]
+        )
+
+    async def async_step_show(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Nur Anzeige: alle eingegebenen Werte des dynamischen und statischen Tarifs."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data={})
+        d = self.config_entry.data
+        lines = [
+            f"**Dynamischer Tarif:** Grundpreis {d[CONF_DYN_BASE]:.2f} €/Monat, "
+            f"Faktor {d[CONF_DYN_FACTOR]}, Aufschlag {d[CONF_DYN_SURCHARGE]:.2f} ct/kWh, "
+            f"Auswertung ab {d[CONF_EVAL_START]}",
+            "",
+            "**Statische Tarife:**",
+        ]
+        for t in d[CONF_STATIC_TARIFFS]:
+            bis = t.get(CONF_VALID_TO) or "offen"
+            lines.append(
+                f"- {t[CONF_TARIFF_NAME]}: gültig {t[CONF_VALID_FROM]} bis {bis}, "
+                f"Grundpreis {float(t[CONF_BASE_FEE]):.2f} €/Monat, "
+                f"Arbeitspreis {float(t[CONF_WORK_PRICE_CT]):.2f} ct/kWh"
+            )
+        return self.async_show_form(
+            step_id="show",
+            data_schema=vol.Schema({}),
+            description_placeholders={"werte": "\n".join(lines)},
+        )
 
     def _save(self, data: dict[str, Any]) -> ConfigFlowResult:
         self.hass.config_entries.async_update_entry(self.config_entry, data=data)
