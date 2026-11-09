@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Dynamischer Tarif",
-        "description": "Verbrauchssensor (Leistung in W/kW oder Zähler in kWh, positiv = Bezug) und Börsenpreis-Sensor. Die Einheiten werden automatisch erkannt.",
+        "description": "[Version {version}] Verbrauchssensor (Leistung in W/kW oder Zähler in kWh, positiv = Bezug) und Börsenpreis-Sensor. Die Einheiten werden automatisch erkannt.",
         "data": {
           "name": "Name",
           "consumption_entity": "Netzbezug-Leistungssensor",

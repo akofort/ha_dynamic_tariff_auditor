@@ -21,6 +21,7 @@ from homeassistant.util import dt as dt_util
 
 from .calc import ENERGY_UNIT_FACTORS, POWER_UNIT_FACTORS
 from .const import (
+    VERSION,
     CONF_CONSUMPTION_FACTOR,
     CONF_CONSUMPTION_KIND,
     CONF_PRICE_UNIT,
@@ -120,7 +121,11 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_PRICE_UNIT: price_unit,
             }
             return await self.async_step_static()
-        return self.async_show_form(step_id="user", data_schema=_user_schema())
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_user_schema(),
+            description_placeholders={"version": VERSION},
+        )
 
     async def async_step_static(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
