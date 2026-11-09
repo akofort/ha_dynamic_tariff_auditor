@@ -59,6 +59,8 @@ TICK = timedelta(minutes=15)
 HOUR = 3600.0
 # Entries, deren gespeicherter Stand verworfen wird (Tarife geändert): nicht erneut speichern
 RESET_PENDING: set[str] = set()
+# Speicher für importierte Börsenpreise (€/kWh, Schlüssel = Stundenbeginn ISO)
+PRICE_STORE_KEY = f"{DOMAIN}.prices"
 
 
 def _to_float(value: Any) -> float | None:
@@ -129,6 +131,11 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._statics, self._dynamic, self._prices, self._tz, start_ts,
             kind=self._kind, end_ts=self._end_ts(),
         )
+        # Importierte Börsenpreise (z. B. Energy-Charts) zuerst laden
+        imported = await Store(self.hass, STORAGE_VERSION, PRICE_STORE_KEY).async_load() or {}
+        for hour, eur_kwh in imported.items():
+            self._prices.add(datetime.fromisoformat(hour).timestamp(), eur_kwh)
+
         stored = await self._store.async_load()
         if stored and not self._is_current_state(stored):
             _LOGGER.info("Gespeicherter Stand ist veraltet, Neuberechnung ab Auswertungsbeginn")

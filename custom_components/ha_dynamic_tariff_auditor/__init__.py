@@ -6,9 +6,6 @@ from pathlib import Path
 
 import voluptuous as vol
 
-from homeassistant.components.recorder import get_instance
-from homeassistant.components.recorder.models import StatisticData, StatisticMeanType, StatisticMetaData
-from homeassistant.components.recorder.statistics import async_import_statistics
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -16,9 +13,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .calc import PRICE_UNIT_FACTORS
-from .const import CONF_PRICE, CONF_PRICE_UNIT, DOMAIN
-from .coordinator import RESET_PENDING, STORAGE_VERSION, DynamicTariffAuditorCoordinator
+from .const import DOMAIN
+from .coordinator import PRICE_STORE_KEY, RESET_PENDING, STORAGE_VERSION, DynamicTariffAuditorCoordinator
 from .energy_charts import fetch_energy_charts
 from .smard import parse_smard_csv
 
@@ -93,29 +89,16 @@ def _read_smard(path: str) -> dict[datetime, float]:
 
 
 async def _async_write_prices(hass: HomeAssistant, prices_eur_mwh: dict[datetime, float]) -> None:
-    """Stundenpreise (€/MWh) in die Statistik des Preissensors schreiben und neu berechnen."""
+    """Importierte Börsenpreise speichern (€/kWh) und danach neu berechnen."""
     entries = [e for e in hass.config_entries.async_entries(DOMAIN) if e.state is ConfigEntryState.LOADED]
     if not entries:
         raise vol.Invalid("Kein Eintrag von Dynamic Tariff Auditor geladen")
     if not prices_eur_mwh:
         raise vol.Invalid("Keine Preise zum Importieren")
-    entry = entries[0]
-
-    # In die Einheit des Preissensors umrechnen
-    unit = entry.data[CONF_PRICE_UNIT]
-    factor = PRICE_UNIT_FACTORS["€/MWh"] / PRICE_UNIT_FACTORS[unit]
-    metadata = StatisticMetaData(
-        source="recorder",
-        statistic_id=entry.data[CONF_PRICE],
-        name=None,
-        unit_of_measurement=unit,
-        unit_class=None,
-        has_mean=True,
-        mean_type=StatisticMeanType.ARITHMETIC,
-        has_sum=False,
-    )
-    stats = [StatisticData(start=hour, mean=value * factor) for hour, value in prices_eur_mwh.items()]
-    async_import_statistics(hass, metadata, stats)
-    # Warten, bis der Recorder die Importe geschrieben hat, bevor neu berechnet wird
-    await get_instance(hass).async_block_till_done()
-    await _async_reset_and_reload(hass, entry)
+    store: Store[dict[str, float]] = Store(hass, STORAGE_VERSION, PRICE_STORE_KEY)
+    stored = await store.async_load() or {}
+    for hour, eur_mwh in prices_eur_mwh.items():
+        stored[hour.isoformat()] = eur_mwh / 1000  # €/MWh -> €/kWh
+    await store.async_save(stored)
+    for entry in entries:
+        await _async_reset_and_reload(hass, entry)
