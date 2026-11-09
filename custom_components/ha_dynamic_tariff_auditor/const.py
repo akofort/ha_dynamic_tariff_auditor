@@ -1,7 +1,7 @@
 """Konstanten für ha_dynamic_tariff_auditor."""
 
 DOMAIN = "ha_dynamic_tariff_auditor"
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 
 CONF_NAME = "name"
 CONF_CONSUMPTION = "consumption_entity"
@@ -14,6 +14,11 @@ CONF_DYN_FACTOR = "dyn_factor"
 CONF_DYN_SURCHARGE = "dyn_surcharge_ct"
 CONF_EVAL_START = "eval_start"
 CONF_STATIC_TARIFFS = "static_tariffs"
+CONF_EXPORT = "export_entity"  # optional: Einspeisung
+CONF_EXPORT_KIND = "export_kind"
+CONF_EXPORT_FACTOR = "export_factor"
+CONF_FEED_STATIC_CT = "feed_static_ct"  # Einspeisevergütung statisch (ct/kWh)
+CONF_EVAL_END = "eval_end"  # optional: Auswertung bis
 
 CONF_TARIFF_NAME = "tariff_name"
 CONF_VALID_FROM = "valid_from"

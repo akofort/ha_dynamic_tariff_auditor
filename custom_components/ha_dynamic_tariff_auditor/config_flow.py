@@ -24,6 +24,11 @@ from homeassistant.util import dt as dt_util
 
 from .calc import ENERGY_UNIT_FACTORS, POWER_UNIT_FACTORS
 from .const import (
+    CONF_EVAL_END,
+    CONF_EXPORT,
+    CONF_EXPORT_FACTOR,
+    CONF_EXPORT_KIND,
+    CONF_FEED_STATIC_CT,
     VERSION,
     CONF_CONSUMPTION_FACTOR,
     CONF_CONSUMPTION_KIND,
@@ -73,7 +78,13 @@ def _user_schema() -> vol.Schema:
                 NumberSelectorConfig(min=-100, max=100, step=0.01,
                                      unit_of_measurement="ct/kWh", mode=NumberSelectorMode.BOX)
             ),
+            vol.Optional(CONF_EXPORT): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Required(CONF_FEED_STATIC_CT, default=0.0): NumberSelector(
+                NumberSelectorConfig(min=0, max=100, step=0.01,
+                                     unit_of_measurement="ct/kWh", mode=NumberSelectorMode.BOX)
+            ),
             vol.Required(CONF_EVAL_START, default=dt_util.now().date().isoformat()): DateSelector(),
+            vol.Optional(CONF_EVAL_END): DateSelector(),
         }
     )
 
@@ -138,6 +149,24 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_CONSUMPTION_FACTOR: factor,
                 CONF_PRICE_UNIT: price_unit,
             }
+            export = user_input.get(CONF_EXPORT)
+            if export:
+                exp_unit = _entity_unit(self.hass, export)
+                if exp_unit in POWER_UNIT_FACTORS:
+                    self._general[CONF_EXPORT_KIND] = "power"
+                    self._general[CONF_EXPORT_FACTOR] = POWER_UNIT_FACTORS[exp_unit]
+                elif exp_unit in ENERGY_UNIT_FACTORS:
+                    self._general[CONF_EXPORT_KIND] = "energy"
+                    self._general[CONF_EXPORT_FACTOR] = ENERGY_UNIT_FACTORS[exp_unit]
+                else:
+                    return self.async_show_form(
+                        step_id="user", data_schema=_user_schema(),
+                        errors={CONF_EXPORT: "unsupported_unit"},
+                    )
+            else:
+                self._general.pop(CONF_EXPORT, None)
+            if not self._general.get(CONF_EVAL_END):
+                self._general.pop(CONF_EVAL_END, None)
             return await self.async_step_static()
         return self.async_show_form(
             step_id="user",
@@ -187,6 +216,11 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
 def _dynamic_schema(d: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
         {
+            vol.Required(CONF_FEED_STATIC_CT, default=d.get(CONF_FEED_STATIC_CT, 0.0)): NumberSelector(
+                NumberSelectorConfig(min=0, max=100, step=0.01,
+                                     unit_of_measurement="ct/kWh", mode=NumberSelectorMode.BOX)
+            ),
+            vol.Optional(CONF_EVAL_END, description={"suggested_value": d.get(CONF_EVAL_END)}): DateSelector(),
             vol.Required(CONF_DYN_BASE, default=d[CONF_DYN_BASE]): NumberSelector(
                 NumberSelectorConfig(min=0, max=1000, step=0.01,
                                      unit_of_measurement="€/Monat", mode=NumberSelectorMode.BOX)

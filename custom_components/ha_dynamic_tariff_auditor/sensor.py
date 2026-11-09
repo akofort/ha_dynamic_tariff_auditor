@@ -21,6 +21,15 @@ EUR = "€"
 
 SENSORS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
+        key="feed_kwh", translation_key="feed_kwh",
+        device_class=SensorDeviceClass.ENERGY, native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+    SensorEntityDescription(
+        key="cfg_feed_static_ct", translation_key="cfg_feed_static_ct",
+        native_unit_of_measurement="ct/kWh", state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
         key="cfg_work_static_ct", translation_key="cfg_work_static_ct",
         native_unit_of_measurement="ct/kWh", state_class=SensorStateClass.MEASUREMENT,
     ),

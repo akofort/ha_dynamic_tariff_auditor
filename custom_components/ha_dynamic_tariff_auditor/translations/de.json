@@ -11,7 +11,10 @@
           "dyn_base_fee": "Grundpreis dynamischer Tarif (€/Monat)",
           "dyn_factor": "Faktor auf Börsenpreis",
           "dyn_surcharge_ct": "Aufschlag (ct/kWh, nach Faktor)",
-          "eval_start": "Auswertung ab"
+          "eval_start": "Auswertung ab",
+          "export_entity": "Einspeise-Sensor (optional, W/kW oder kWh)",
+          "feed_static_ct": "Einspeisevergütung statisch (ct/kWh)",
+          "eval_end": "Auswertung bis (optional)"
         }
       },
       "static": {
@@ -75,6 +78,12 @@
       },
       "cfg_surcharge_dyn_ct": {
         "name": "Aufschlag dynamisch (Eingabe)"
+      },
+      "feed_kwh": {
+        "name": "Einspeisung im Zeitraum"
+      },
+      "cfg_feed_static_ct": {
+        "name": "Einspeisevergütung statisch (Eingabe)"
       }
     },
     "binary_sensor": {
