@@ -43,10 +43,6 @@ from .const import (
     CONF_DYN_SURCHARGE,
     CONF_EVAL_END,
     CONF_EVAL_START,
-    CONF_EXPORT,
-    CONF_EXPORT_FACTOR,
-    CONF_EXPORT_KIND,
-    CONF_FEED_STATIC_CT,
     CONF_PRICE,
     CONF_PRICE_UNIT,
     CONF_STATIC_TARIFFS,
@@ -82,10 +78,6 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._consumption: str = d[CONF_CONSUMPTION]
         self._kind: str = d[CONF_CONSUMPTION_KIND]  # "power" oder "energy"
         self._cons_factor: float = float(d[CONF_CONSUMPTION_FACTOR])
-        self._export: str | None = d.get(CONF_EXPORT) or None
-        self._export_kind: str | None = d.get(CONF_EXPORT_KIND) if self._export else None
-        self._export_factor: float = float(d.get(CONF_EXPORT_FACTOR) or 1.0)
-        self._feed_static = float(d.get(CONF_FEED_STATIC_CT) or 0.0) / 100
         self._price_entity: str = d[CONF_PRICE]
         self._price_factor = PRICE_UNIT_FACTORS[d[CONF_PRICE_UNIT]]
         self._tz = dt_util.get_default_time_zone()
@@ -135,8 +127,7 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         start_ts = datetime.combine(self._eval_start, time(0), tzinfo=self._tz).timestamp()
         self._evaluator = Evaluator(
             self._statics, self._dynamic, self._prices, self._tz, start_ts,
-            kind=self._kind, feed_kind=self._export_kind, feed_static=self._feed_static,
-            end_ts=self._end_ts(),
+            kind=self._kind, end_ts=self._end_ts(),
         )
         stored = await self._store.async_load()
         if stored and not self._is_current_state(stored):
@@ -150,8 +141,11 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         await self._async_backfill_states()
 
-        entities = [self._consumption, self._price_entity] + ([self._export] if self._export else [])
-        self._unsubs.append(async_track_state_change_event(self.hass, entities, self._handle_state_change))
+        self._unsubs.append(
+            async_track_state_change_event(
+                self.hass, [self._consumption, self._price_entity], self._handle_state_change
+            )
+        )
         self._unsubs.append(async_track_time_interval(self.hass, self._async_handle_tick, TICK))
         RESET_PENDING.discard(self.config_entry.entry_id)
         self.async_set_updated_data(self._snapshot())
@@ -167,8 +161,6 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # --- Stufe 1: Stunden-Statistiken (langfristig in der DB) ----------------
     def _fetch_statistics(self, start: float, end: float) -> dict[str, list[dict]]:
         ids = {self._consumption, self._price_entity}
-        if self._export:
-            ids.add(self._export)
         return statistics_during_period(
             self.hass,
             dt_util.utc_from_timestamp(start),
@@ -212,31 +204,18 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             kwh = self._kwh_from_row(row, self._kind, self._cons_factor)
             if kwh is not None:
                 ev.add_consumption(row["start"], kwh)
-        if self._export:
-            for row in rows.get(self._export, []):
-                kwh = self._kwh_from_row(row, self._export_kind or "energy", self._export_factor)
-                if kwh is not None:
-                    ev.add_feed(row["start"], kwh)
         ev.accrue_base(hour_end)
         # Ab hier übernimmt der Zustandsverlauf; die Messwertbasis wird neu gesetzt.
         ev.reset_integrators()
         await self._async_save()
 
     # --- Stufe 2: Zustandsverlauf (Recorder-Retention) -----------------------
-    def _fetch_states(self, start: float, end: float) -> tuple[list[State], list[State], list[State]]:
+    def _fetch_states(self, start: float, end: float) -> tuple[list[State], list[State]]:
         start_dt = dt_util.utc_from_timestamp(start)
         end_dt = dt_util.utc_from_timestamp(end)
         prices = history.state_changes_during_period(self.hass, start_dt, end_dt, self._price_entity)
         meters = history.state_changes_during_period(self.hass, start_dt, end_dt, self._consumption)
-        feeds = (
-            history.state_changes_during_period(self.hass, start_dt, end_dt, self._export)
-            if self._export else {}
-        )
-        return (
-            prices.get(self._price_entity, []),
-            meters.get(self._consumption, []),
-            feeds.get(self._export, []) if self._export else [],
-        )
+        return prices.get(self._price_entity, []), meters.get(self._consumption, [])
 
     async def _async_backfill_states(self) -> None:
         assert self._evaluator is not None
@@ -246,7 +225,7 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if start >= now:
             return
         try:
-            price_states, meter_states, feed_states = await get_instance(self.hass).async_add_executor_job(
+            price_states, meter_states = await get_instance(self.hass).async_add_executor_job(
                 self._fetch_states, start, now
             )
         except Exception:  # noqa: BLE001
@@ -258,20 +237,13 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if value is not None:
                 self._prices.add(max(st.last_updated.timestamp(), start), value * self._price_factor)
 
-        events: list[tuple[float, int, float]] = []
-        for st in meter_states:
-            value = _to_float(st.state)
-            if value is not None:
-                events.append((max(st.last_updated.timestamp(), start), 0, value * self._cons_factor))
-        for st in feed_states:
-            value = _to_float(st.state)
-            if value is not None:
-                events.append((max(st.last_updated.timestamp(), start), 1, value * self._export_factor))
-        for ts, which, value in sorted(events):
-            if which == 0:
-                ev.consume(ts, value)
-            else:
-                ev.export(ts, value)
+        events = sorted(
+            (max(st.last_updated.timestamp(), start), value * self._cons_factor)
+            for st in meter_states
+            if (value := _to_float(st.state)) is not None
+        )
+        for ts, value in events:
+            ev.consume(ts, value)
         ev.tick(now)
         await self._async_save()
 
@@ -285,20 +257,17 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if value is None:
             return
         ts = new.last_updated.timestamp()
-        entity = event.data["entity_id"]
-        if entity == self._price_entity:
+        if event.data["entity_id"] == self._price_entity:
             self._prices.add(ts, value * self._price_factor)
-        elif entity == self._consumption:
+        else:
             self._evaluator.consume(ts, value * self._cons_factor)
-        elif entity == self._export:
-            self._evaluator.export(ts, value * self._export_factor)
         RESET_PENDING.discard(self.config_entry.entry_id)
         self.async_set_updated_data(self._snapshot())
 
     async def _async_handle_tick(self, now: datetime) -> None:
         if self._evaluator is None:
             return
-        self._evaluator.tick(min(now.timestamp(), self._end_ts() or now.timestamp()))
+        self._evaluator.tick(now.timestamp())
         self.async_set_updated_data(self._snapshot())
         await self._async_save()
 
@@ -318,7 +287,6 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data["cfg_base_static"] = now_tariff.base_fee_month if now_tariff else None
         data["cfg_base_dyn"] = self._dynamic.base_fee_month
         data["cfg_surcharge_dyn_ct"] = self._dynamic.surcharge * 100
-        data["cfg_feed_static_ct"] = self._feed_static * 100
         data["monate"] = {k: summarize(b) for k, b in sorted(self._evaluator.months.items())}
         data["jahre"] = {k: summarize(b) for k, b in sorted(yearly(self._evaluator.months).items())}
         return data

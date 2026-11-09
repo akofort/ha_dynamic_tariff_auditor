@@ -199,23 +199,9 @@ def test_smard_parser_hourly_mean_and_missing_values():
     assert len(res) == 2
 
 
-def test_feed_in_credit_and_end_date():
+def test_end_date_stops_counting():
     prices = PriceSeries()
     prices.add(ts(2025, 1, 1), 0.10)
-    ev = Evaluator(
-        [StaticTariff("Std", date(2025, 1, 1), None, 0.0, 0.30)],
-        DynamicTariff(base_fee_month=0.0), prices, TZ, ts(2025, 1, 1),
-        kind="power", feed_kind="power", feed_static=0.08,
-    )
-    ev.export(ts(2025, 1, 1, 0), 1.0)
-    ev.export(ts(2025, 1, 1, 1), 0.0)  # 1 kWh Einspeisung
-    t = ev.totals()
-    assert t.feed_kwh == pytest.approx(1.0)
-    assert t.static_credit == pytest.approx(0.08)
-    assert t.dyn_credit == pytest.approx(0.10)
-    s = summarize(t)
-    assert s["static_cost"] == pytest.approx(-0.08)  # nur Einspeisung, keine Kosten
-
     ev2 = Evaluator(
         [StaticTariff("Std", date(2025, 1, 1), None, 0.0, 0.30)],
         DynamicTariff(base_fee_month=0.0), prices, TZ, ts(2025, 1, 1),
