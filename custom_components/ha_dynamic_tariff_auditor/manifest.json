@@ -1,0 +1,12 @@
+{
+  "domain": "ha_dynamic_tariff_auditor",
+  "name": "Dynamic Tariff Auditor",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["recorder"],
+  "documentation": "https://github.com/",
+  "iot_class": "calculated",
+  "integration_type": "helper",
+  "requirements": [],
+  "version": "0.1.0"
+}

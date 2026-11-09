@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dynamischer Tarif",
+        "description": "Verbrauchszähler (kWh, kumulativ) und Börsenpreis-Sensor. Historie wird aus dem Recorder gelesen.",
+        "data": {
+          "name": "Name",
+          "consumption_entity": "Netzbezug-Zähler (kWh)",
+          "price_entity": "Börsenpreis-Sensor",
+          "price_unit": "Einheit des Preissensors",
+          "dyn_base_fee": "Grundpreis dynamischer Tarif (€/Monat)",
+          "dyn_factor": "Faktor auf Börsenpreis",
+          "dyn_surcharge_ct": "Aufschlag (ct/kWh, nach Faktor)",
+          "eval_start": "Auswertung ab"
+        }
+      },
+      "static": {
+        "title": "Statischer Tarif {nr}",
+        "description": "Gültigkeitszeitraum und Preise. Ohne Enddatum gilt der Tarif unbefristet. Bei Überschneidung gewinnt der jüngste Beginn.",
+        "data": {
+          "tariff_name": "Bezeichnung",
+          "valid_from": "Gültig ab",
+          "valid_to": "Gültig bis (optional)",
+          "base_fee": "Grundpreis (€/Monat)",
+          "work_price_ct": "Arbeitspreis (ct/kWh)",
+          "add_more": "Weiteren statischen Tarif hinzufügen"
+        }
+      }
+    },
+    "error": {
+      "invalid_period": "Das Enddatum liegt vor dem Startdatum."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "dyn_cost": {"name": "Kosten dynamisch"},
+      "static_cost": {"name": "Kosten statisch"},
+      "difference": {"name": "Ersparnis dynamisch"},
+      "savings_pct": {"name": "Ersparnis in Prozent"},
+      "kwh": {"name": "Verbrauch im Zeitraum"},
+      "avg_dyn_ct": {"name": "Ø Preis dynamisch"},
+      "avg_static_ct": {"name": "Ø Preis statisch"}
+    },
+    "binary_sensor": {
+      "dynamic_cheaper": {"name": "Dynamisch günstiger"}
+    }
+  }
+}
