@@ -19,10 +19,11 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.util import dt as dt_util
 
+from .calc import ENERGY_UNIT_FACTORS, POWER_UNIT_FACTORS
 from .const import (
-    CONF_POWER_UNIT,
+    CONF_CONSUMPTION_FACTOR,
+    CONF_CONSUMPTION_KIND,
     CONF_PRICE_UNIT,
-    POWER_UNITS,
     PRICE_UNITS,
     CONF_ADD_MORE,
     CONF_BASE_FEE,
@@ -99,15 +100,25 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             errors: dict[str, str] = {}
-            power_unit = _entity_unit(self.hass, user_input[CONF_CONSUMPTION])
+            cons_unit = _entity_unit(self.hass, user_input[CONF_CONSUMPTION])
             price_unit = _entity_unit(self.hass, user_input[CONF_PRICE])
-            if power_unit not in POWER_UNITS:
+            if cons_unit in POWER_UNIT_FACTORS:
+                kind, factor = "power", POWER_UNIT_FACTORS[cons_unit]
+            elif cons_unit in ENERGY_UNIT_FACTORS:
+                kind, factor = "energy", ENERGY_UNIT_FACTORS[cons_unit]
+            else:
+                kind, factor = None, None
                 errors[CONF_CONSUMPTION] = "unsupported_unit"
             if price_unit not in PRICE_UNITS:
                 errors[CONF_PRICE] = "unsupported_unit"
             if errors:
                 return self.async_show_form(step_id="user", data_schema=_user_schema(), errors=errors)
-            self._general = {**user_input, CONF_POWER_UNIT: power_unit, CONF_PRICE_UNIT: price_unit}
+            self._general = {
+                **user_input,
+                CONF_CONSUMPTION_KIND: kind,
+                CONF_CONSUMPTION_FACTOR: factor,
+                CONF_PRICE_UNIT: price_unit,
+            }
             return await self.async_step_static()
         return self.async_show_form(step_id="user", data_schema=_user_schema())
 

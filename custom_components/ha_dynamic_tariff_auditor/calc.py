@@ -13,6 +13,7 @@ NO_TARIFF = "ohne Tarif"
 
 PRICE_UNIT_FACTORS = {"ct/kWh": 0.01, "€/kWh": 1.0, "€/MWh": 0.001}
 POWER_UNIT_FACTORS = {"W": 0.001, "kW": 1.0}  # -> kW
+ENERGY_UNIT_FACTORS = {"Wh": 0.001, "kWh": 1.0, "MWh": 1000.0}  # -> kWh
 
 
 @dataclass(frozen=True)
@@ -99,6 +100,7 @@ class Evaluator:
         self.last_ts = start_ts  # Stand der Grundgebühren
         self.last_power: float | None = None  # kW seit power_ts
         self.power_ts: float | None = None
+        self.last_meter: float | None = None  # kWh-Zählerstand (nur bei Energie-Sensoren)
         self.buckets: dict[str, Bucket] = {}
 
     # --- Hilfsfunktionen -------------------------------------------------
@@ -157,6 +159,21 @@ class Evaluator:
         self.last_power = kw
         self.power_ts = ts
 
+    def update_meter(self, ts: float, reading: float) -> None:
+        """Kumulativer Zählerstand (kWh, total_increasing). Reset wird erkannt."""
+        if self.last_meter is None:
+            self.last_meter = reading
+            self.accrue_base(ts)
+            return
+        delta = reading - self.last_meter
+        if delta < 0:  # Zählerreset
+            delta = reading
+        self.last_meter = reading
+        if delta > 0:
+            self.add_consumption(ts, delta)
+        else:
+            self.accrue_base(ts)
+
     def tick(self, now: float) -> None:
         """Zeitlichen Fortschritt verbuchen, auch ohne neue Sensorwerte."""
         if self.last_power is not None:
@@ -177,6 +194,7 @@ class Evaluator:
             "last_ts": self.last_ts,
             "last_power": self.last_power,
             "power_ts": self.power_ts,
+            "last_meter": self.last_meter,
             "buckets": {k: asdict(v) for k, v in self.buckets.items()},
         }
 
@@ -184,6 +202,7 @@ class Evaluator:
         self.last_ts = data["last_ts"]
         self.last_power = data["last_power"]
         self.power_ts = data["power_ts"]
+        self.last_meter = data.get("last_meter")
         self.buckets = {k: Bucket(**v) for k, v in data["buckets"].items()}
 
 

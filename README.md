@@ -9,7 +9,7 @@ werden die Stunden-Statistiken aus der Datenbank nachberechnet.
 
 - Config-Flow: dynamischer Tarif (Zähler, Börsenpreis-Sensor, Faktor, Aufschlag, Grundpreis) und beliebig viele statische Zeiträume
 - Historische Auswertung ab einem frei wählbaren Datum: Stunden-Mittelwerte der Leistung aus der Langzeit-Statistik (dauerhaft in der DB), danach der Zustandsverlauf
-- Verbrauch = Leistung × Zeit (Stundenmittel im Erstlauf, Zeitintegration danach)
+- Verbrauch: bei Leistung Stundenmittel im Erstlauf bzw. Zeitintegration, bei Zählern Stundendifferenz im Erstlauf bzw. Zählerdifferenz
 - Live-Auswertung über Zustandsänderungen, Zwischenstand wird gespeichert
 - Sensoren: Kosten dynamisch / statisch, Ersparnis (€ und %), Verbrauch, Ø-Preise (ct/kWh)
 - Attribut `zeitraeume` am Sensor „Ersparnis dynamisch“: Aufschlüsselung je statischem Zeitraum
@@ -17,7 +17,9 @@ werden die Stunden-Statistiken aus der Datenbank nachberechnet.
 
 ## Voraussetzungen
 
-- Netzbezug-**Leistungssensor** in W oder kW (positiv = Bezug, Einspeisung wird ignoriert) mit `state_class: measurement`
+- Netzbezug-Sensor, automatisch erkannt an der Einheit:
+  - Leistung in W oder kW (`state_class: measurement`): Verbrauch = Leistung × Zeit. Negative Werte (Einspeisung) zählen nicht.
+  - Zähler in Wh, kWh oder MWh (`state_class: total_increasing`): Verbrauch = Zählerdifferenz
 - Börsenpreis-Sensor mit `state_class: measurement` (sonst gibt es keine Stunden-Statistik)
 - Recorder aktiv. Für Auswertungen über Monate sollte `purge_keep_days` nicht zu klein sein, weil nur der Zeitraum seit dem letzten Stand aus den Zuständen gelesen wird. Die Stunden-Statistik bleibt dauerhaft erhalten.
 
@@ -53,7 +55,7 @@ Die Tests prüfen die reine Berechnungslogik in `calc.py` ohne Home Assistant.
 
 - Preise und Leistung aus der Statistik sind Stundenmittel. Bei 15-Minuten-Preisen geht Auflösung verloren.
 - Der Zustandsverlauf reicht nur so weit wie der Recorder. Ist HA länger aus als `purge_keep_days`, fehlt der Zeitraum.
-- Der Verbrauch wird aus Leistungswerten gerechnet. Die Genauigkeit hängt davon ab, wie oft der Sensor aktualisiert.
+- Bei Leistungssensoren hängt die Genauigkeit davon ab, wie oft der Sensor aktualisiert.
 - Tarife lassen sich nach dem Anlegen nicht ändern (keine Optionsseite).
 - Die Grundgebühr wird anteilig nach Sekunden berechnet, 1 Monat = 30,4375 Tage.
 - Noch nicht in einer echten Home-Assistant-Instanz getestet.

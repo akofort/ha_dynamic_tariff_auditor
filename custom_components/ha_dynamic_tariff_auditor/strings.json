@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Dynamischer Tarif",
-        "description": "Leistungssensor (W oder kW, positiv = Bezug) und Börsenpreis-Sensor. Die Einheiten werden automatisch aus den Sensoren gelesen.",
+        "description": "Verbrauchssensor (Leistung in W/kW oder Zähler in kWh, positiv = Bezug) und Börsenpreis-Sensor. Die Einheiten werden automatisch erkannt.",
         "data": {
           "name": "Name",
           "consumption_entity": "Netzbezug-Leistungssensor",
@@ -29,7 +29,7 @@
     },
     "error": {
       "invalid_period": "Das Enddatum liegt vor dem Startdatum.",
-      "unsupported_unit": "Einheit des Sensors wird nicht unterstützt."
+      "unsupported_unit": "Einheit nicht unterstützt. Verbrauch: W, kW, Wh, kWh oder MWh. Preis: ct/kWh, €/kWh oder €/MWh."
     }
   },
   "entity": {

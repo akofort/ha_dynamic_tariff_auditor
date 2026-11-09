@@ -121,3 +121,13 @@ def test_state_roundtrip_and_summary():
     s = summarize(ev2.totals())
     assert s["difference"] == pytest.approx(s["static_cost"] - s["dyn_cost"])
     assert s["avg_static_ct"] is not None
+
+
+def test_energy_meter_delta_and_reset():
+    prices = PriceSeries()
+    prices.add(ts(2025, 1, 1), 0.10)
+    ev = make(prices=prices, start=ts(2025, 1, 1))
+    ev.update_meter(ts(2025, 1, 1, 0), 100.0)  # Basis
+    ev.update_meter(ts(2025, 1, 1, 1), 103.5)  # +3.5 kWh
+    ev.update_meter(ts(2025, 1, 1, 2), 2.0)  # Reset -> 2 kWh neu
+    assert ev.totals().kwh == pytest.approx(5.5)

@@ -26,7 +26,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .calc import (
-    POWER_UNIT_FACTORS,
     PRICE_UNIT_FACTORS,
     DynamicTariff,
     Evaluator,
@@ -42,7 +41,8 @@ from .const import (
     CONF_DYN_SURCHARGE,
     CONF_EVAL_START,
     CONF_PRICE,
-    CONF_POWER_UNIT,
+    CONF_CONSUMPTION_FACTOR,
+    CONF_CONSUMPTION_KIND,
     CONF_PRICE_UNIT,
     CONF_STATIC_TARIFFS,
     CONF_TARIFF_NAME,
@@ -75,7 +75,8 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._consumption: str = d[CONF_CONSUMPTION]
         self._price_entity: str = d[CONF_PRICE]
         self._price_factor = PRICE_UNIT_FACTORS[d[CONF_PRICE_UNIT]]
-        self._power_factor = POWER_UNIT_FACTORS[d[CONF_POWER_UNIT]]
+        self._kind: str = d[CONF_CONSUMPTION_KIND]  # "power" (kW) oder "energy" (kWh)
+        self._cons_factor: float = float(d[CONF_CONSUMPTION_FACTOR])
         self._tz = dt_util.get_default_time_zone()
         self._eval_start: date = date.fromisoformat(d[CONF_EVAL_START])
         self._statics = [
@@ -135,7 +136,7 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             {self._consumption, self._price_entity},
             "hour",
             None,
-            {"mean"},
+            {"mean", "change"},
         )
 
     async def _async_backfill_statistics(self) -> None:
@@ -159,15 +160,22 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             mean = _to_float(row.get("mean"))
             if mean is not None:
                 self._prices.add(row["start"], mean * self._price_factor)
-        # Mittlere Leistung je Stunde (kW) x 1 h = kWh dieser Stunde
         for row in rows.get(self._consumption, []):
-            mean = _to_float(row.get("mean"))
-            if mean is not None and mean > 0:
-                ev.add_consumption(row["start"], mean * self._power_factor)
+            if self._kind == "power":
+                # Mittlere Leistung je Stunde x 1 h = kWh dieser Stunde
+                mean = _to_float(row.get("mean"))
+                if mean is not None and mean > 0:
+                    ev.add_consumption(row["start"], mean * self._cons_factor)
+            else:
+                # Zähler: Verbrauch der Stunde = Differenz des Zählers
+                change = _to_float(row.get("change"))
+                if change is not None and change > 0:
+                    ev.add_consumption(row["start"], change * self._cons_factor)
         ev.accrue_base(hour_end)
-        # Ab hier übernimmt der Zustandsverlauf; die Leistung wird neu als Basis gesetzt.
+        # Ab hier übernimmt der Zustandsverlauf; die Basis wird neu gesetzt.
         ev.last_power = None
         ev.power_ts = None
+        ev.last_meter = None
         await self._async_save()
 
     # --- Stufe 2: Zustandsverlauf (Recorder-Retention) -----------------------
@@ -199,12 +207,12 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._prices.add(max(st.last_updated.timestamp(), start), value * self._price_factor)
 
         events = sorted(
-            (max(st.last_updated.timestamp(), start), value * self._power_factor)
+            (max(st.last_updated.timestamp(), start), value * self._cons_factor)
             for st in meter_states
             if (value := _to_float(st.state)) is not None
         )
-        for ts, kw in events:
-            ev.update_power(ts, kw)
+        for ts, value in events:
+            self._apply_consumption(ts, value)
         ev.tick(now)
         await self._async_save()
 
@@ -221,8 +229,16 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if event.data["entity_id"] == self._price_entity:
             self._prices.add(ts, value * self._price_factor)
         else:
-            self._evaluator.update_power(ts, value * self._power_factor)
+            self._apply_consumption(ts, value * self._cons_factor)
         self.async_set_updated_data(self._snapshot())
+
+    def _apply_consumption(self, ts: float, value: float) -> None:
+        """Leistung (kW) integrieren bzw. Zählerstand (kWh) verbuchen."""
+        assert self._evaluator is not None
+        if self._kind == "power":
+            self._evaluator.update_power(ts, value)
+        else:
+            self._evaluator.update_meter(ts, value)
 
     async def _async_handle_tick(self, now: datetime) -> None:
         if self._evaluator is None:
