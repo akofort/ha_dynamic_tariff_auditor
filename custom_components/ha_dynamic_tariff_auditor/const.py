@@ -1,7 +1,7 @@
 """Konstanten für ha_dynamic_tariff_auditor."""
 
 DOMAIN = "ha_dynamic_tariff_auditor"
-VERSION = "0.2.3"
+VERSION = "0.3.0"
 
 CONF_NAME = "name"
 CONF_CONSUMPTION = "consumption_entity"

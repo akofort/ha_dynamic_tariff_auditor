@@ -8,7 +8,7 @@
   ],
   "documentation": "https://github.com/",
   "iot_class": "calculated",
-  "integration_type": "helper",
+  "integration_type": "service",
   "requirements": [],
-  "version": "0.2.3"
+  "version": "0.3.0"
 }

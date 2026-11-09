@@ -31,6 +31,7 @@ from .calc import (
     Evaluator,
     PriceSeries,
     StaticTariff,
+    month_summary,
     summarize,
 )
 from .const import (
@@ -56,6 +57,8 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_VERSION = 1
 TICK = timedelta(minutes=15)
 HOUR = 3600.0
+# Entries, deren gespeicherter Stand verworfen wird (Tarife geändert): nicht erneut speichern
+RESET_PENDING: set[str] = set()
 
 
 def _to_float(value: Any) -> float | None:
@@ -117,13 +120,14 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
         )
         self._unsubs.append(async_track_time_interval(self.hass, self._async_handle_tick, TICK))
+        RESET_PENDING.discard(self.config_entry.entry_id)
         self.async_set_updated_data(self._snapshot())
 
     async def async_stop(self) -> None:
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
-        if self._evaluator is not None:
+        if self._evaluator is not None and self.config_entry.entry_id not in RESET_PENDING:
             self._evaluator.tick(_time.time())
             await self._async_save()
 
@@ -256,4 +260,5 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         assert self._evaluator is not None
         data = summarize(self._evaluator.totals())
         data["buckets"] = {n: summarize(b) for n, b in self._evaluator.buckets.items()}
+        data.update(month_summary(self._evaluator, _time.time()))
         return data

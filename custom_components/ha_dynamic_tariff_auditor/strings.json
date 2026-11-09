@@ -54,12 +54,63 @@
       },
       "avg_static_ct": {
         "name": "Ø Preis statisch"
+      },
+      "month_dyn_cost": {
+        "name": "Kosten dynamisch (laufender Monat)"
+      },
+      "month_static_cost": {
+        "name": "Kosten statisch (laufender Monat)"
+      },
+      "month_difference": {
+        "name": "Ersparnis (laufender Monat)"
       }
     },
     "binary_sensor": {
       "dynamic_cheaper": {
         "name": "Dynamisch günstiger"
       }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tarife ändern",
+        "menu_options": {
+          "dynamic": "Dynamischer Tarif (Grundpreis, Faktor, Aufschlag)",
+          "static_add": "Statischen Tarif hinzufügen",
+          "static_remove": "Statischen Tarif entfernen"
+        }
+      },
+      "dynamic": {
+        "title": "Dynamischer Tarif",
+        "description": "Änderungen führen zu einer Neuberechnung ab Auswertungsbeginn.",
+        "data": {
+          "dyn_base_fee": "Grundpreis (€/Monat)",
+          "dyn_factor": "Faktor auf Börsenpreis",
+          "dyn_surcharge_ct": "Aufschlag (ct/kWh)",
+          "eval_start": "Auswertung ab"
+        }
+      },
+      "static_add": {
+        "title": "Statischer Tarif hinzufügen",
+        "description": "Änderungen führen zu einer Neuberechnung ab Auswertungsbeginn.",
+        "data": {
+          "tariff_name": "Bezeichnung",
+          "valid_from": "Gültig ab",
+          "valid_to": "Gültig bis (optional)",
+          "base_fee": "Grundpreis (€/Monat)",
+          "work_price_ct": "Arbeitspreis (ct/kWh)"
+        }
+      },
+      "static_remove": {
+        "title": "Statischen Tarif entfernen",
+        "data": {
+          "tariff": "Tarif"
+        }
+      }
+    },
+    "error": {
+      "invalid_period": "Das Enddatum liegt vor dem Startdatum."
     }
   }
 }

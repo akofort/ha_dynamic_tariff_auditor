@@ -141,3 +141,17 @@ def test_missing_price_excluded_from_both_sides():
     assert t.kwh == pytest.approx(4.0)
     assert t.static_energy == 0.0
     assert t.dyn_energy == 0.0
+
+
+def test_month_summary_uses_full_base_fee():
+    from calc import month_summary
+
+    prices = PriceSeries()
+    prices.add(ts(2025, 1, 1), 0.10)
+    ev = make(prices=prices, start=ts(2025, 1, 1))
+    ev.update_power(ts(2025, 1, 1, 0), 1.0)
+    ev.update_power(ts(2025, 1, 1, 1), 0.0)  # 1 kWh im Januar
+    s = month_summary(ev, ts(2025, 1, 15))
+    assert s["month_kwh"] == pytest.approx(1.0)
+    assert s["month_static_cost"] == pytest.approx(10.0 + 0.30)  # volle Grundgebühr
+    assert s["month_dyn_cost"] == pytest.approx(5.0 + 0.15)

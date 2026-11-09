@@ -102,6 +102,7 @@ class Evaluator:
         self.power_ts: float | None = None
         self.last_meter: float | None = None  # kWh-Zählerstand (nur bei Energie-Sensoren)
         self.buckets: dict[str, Bucket] = {}
+        self.months: dict[str, Bucket] = {}  # "YYYY-MM" -> Energie (ohne Grundgebühr)
 
     # --- Hilfsfunktionen -------------------------------------------------
     def tariff_at(self, ts: float) -> StaticTariff | None:
@@ -138,6 +139,11 @@ class Evaluator:
         tariff = self.tariff_at(ts)
         spot = self.prices.price_at(ts)
         b = self._bucket(tariff.name if tariff else NO_TARIFF)
+        self._book(b, tariff, spot, kwh)
+        month = datetime.fromtimestamp(ts, self.tz).strftime("%Y-%m")
+        self._book(self.months.setdefault(month, Bucket()), tariff, spot, kwh)
+
+    def _book(self, b: Bucket, tariff, spot, kwh: float) -> None:
         b.kwh += kwh
         if tariff is None:
             b.kwh_no_tariff += kwh
@@ -198,6 +204,7 @@ class Evaluator:
             "power_ts": self.power_ts,
             "last_meter": self.last_meter,
             "buckets": {k: asdict(v) for k, v in self.buckets.items()},
+            "months": {k: asdict(v) for k, v in self.months.items()},
         }
 
     def load_state(self, data: dict) -> None:
@@ -206,6 +213,7 @@ class Evaluator:
         self.power_ts = data["power_ts"]
         self.last_meter = data.get("last_meter")
         self.buckets = {k: Bucket(**v) for k, v in data["buckets"].items()}
+        self.months = {k: Bucket(**v) for k, v in data.get("months", {}).items()}
 
 
 def summarize(t: Bucket) -> dict:
@@ -221,4 +229,22 @@ def summarize(t: Bucket) -> dict:
         "avg_dyn_ct": dyn / t.kwh * 100 if t.kwh > 0 else None,
         "kwh_no_tariff": t.kwh_no_tariff,
         "kwh_no_price": t.kwh_no_price,
+    }
+
+
+def month_summary(ev: "Evaluator", now_ts: float) -> dict:
+    """Laufender Monat: volle Grundgebühr (nicht anteilig) plus Energie des Monats."""
+    local = datetime.fromtimestamp(now_ts, ev.tz)
+    key = local.strftime("%Y-%m")
+    first = datetime(local.year, local.month, 1, tzinfo=ev.tz).timestamp()
+    tariff = ev.tariff_at(first)
+    m = ev.months.get(key, Bucket())
+    static = m.static_energy + (tariff.base_fee_month if tariff else 0.0)
+    dyn = m.dyn_energy + ev.dynamic.base_fee_month
+    diff = static - dyn
+    return {
+        "month_static_cost": static,
+        "month_dyn_cost": dyn,
+        "month_difference": diff,
+        "month_kwh": m.kwh,
     }
