@@ -30,9 +30,32 @@ danach läuft sie mit den Zustandsänderungen weiter.
 
 ## Installation
 
-1. Ordner `custom_components/ha_dynamic_tariff_auditor/` nach `config/custom_components/` kopieren (oder über HACS als benutzerdefiniertes Repository einbinden).
+### Über den Marketplace (Home Assistant 2026.11 und neuer)
+
+1. Einstellungen → **Marketplace** → oben rechts die Menüschaltfläche (⋮) → **Über einen GitHub-Link hinzufügen**.
+2. Diese Adresse eintragen: `https://github.com/akofort/ha_dynamic_tariff_auditor` → **Hinzufügen**.
+3. Den Eintrag **Dynamic Tariff Auditor** öffnen → **Herunterladen** bzw. **Installieren**.
+4. Home Assistant neu starten.
+5. Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Dynamic Tariff Auditor“.
+
+Beim ersten Mal verlangt der Marketplace, dass der Hinweis unter Einstellungen → Marketplace einmal akzeptiert wird.
+
+### Über HACS (ältere Home-Assistant-Versionen)
+
+1. HACS → **Benutzerdefinierte Repositories** → URL `https://github.com/akofort/ha_dynamic_tariff_auditor`, Typ **Integration** → Hinzufügen.
+2. Im HACS den Eintrag **Dynamic Tariff Auditor** → **Herunterladen**.
+3. Home Assistant neu starten.
+4. Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Dynamic Tariff Auditor“.
+
+### Manuell
+
+1. Den Ordner `custom_components/ha_dynamic_tariff_auditor/` aus dem Repository nach `/config/custom_components/` kopieren.
 2. Home Assistant neu starten.
-3. Einstellungen → Geräte & Dienste → Integration hinzufügen → „Dynamic Tariff Auditor“.
+3. Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Dynamic Tariff Auditor“.
+
+### Aktualisieren
+
+Im Marketplace oder HACS erscheint bei einer neuen Version ein Update. Danach Home Assistant neu starten. Die Einträge und gespeicherten Daten bleiben erhalten.
 
 ## Einrichtung
 
