@@ -228,3 +228,21 @@ def test_energy_charts_parser_hourly_mean():
     values = list(res.values())
     assert values[0] == pytest.approx(150.0)
     assert values[1] == pytest.approx(50.0)
+
+
+def test_periods_overlap_rules():
+    import sys
+    sys.path.insert(0, "/home/user/custom_components/ha_dynamic_tariff_auditor")
+    from tariff_library import build_statics, periods_overlap
+
+    # überschneidungsfrei: 2025 endet am 31.12., 2026 beginnt am 01.01.
+    assert not periods_overlap("2025-01-01", "2025-12-31", "2026-01-01", None)
+    # Überschneidung am letzten Tag
+    assert periods_overlap("2025-01-01", "2025-12-31", "2025-12-31", None)
+    # offener Zeitraum überschneidet alles danach
+    assert periods_overlap("2026-06-01", None, "2027-01-01", "2027-06-30")
+
+    library = {"t1": {"name": "Grund", "base_fee": 14.98, "work_price_ct": 28.99}}
+    statics = build_statics([{"tariff_id": "t1", "valid_from": "2025-01-01", "valid_to": "2025-12-31"}], library)
+    assert statics[0].name == "Grund"
+    assert statics[0].work_price == pytest.approx(0.2899)

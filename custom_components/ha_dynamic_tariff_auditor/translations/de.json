@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Dynamischer Tarif",
-        "description": "[Version {version}] Verbrauchssensor (Leistung in W/kW oder Zähler in kWh, positiv = Bezug) und Börsenpreis-Sensor. Die Einheiten werden automatisch erkannt.",
+        "description": "Verbrauchssensor (Leistung in W/kW oder Zähler in kWh, positiv = Bezug) und Börsenpreis-Sensor. Die Einheiten werden automatisch erkannt. Danach wählst du die statischen Tarife.",
         "data": {
           "name": "Name",
           "consumption_entity": "Netzbezug-Leistungssensor",
@@ -12,13 +12,11 @@
           "dyn_factor": "Faktor auf Börsenpreis",
           "dyn_surcharge_ct": "Aufschlag (ct/kWh, nach Faktor)",
           "eval_start": "Auswertung ab",
-          "eval_end": "Auswertung bis (optional)",
-          "copy_from": "Tarife übernehmen aus (optional)"
+          "eval_end": "Auswertung bis (optional)"
         },
         "data_description": {
           "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei Tibber meist 1,0, weil der Preis schon brutto ist.",
-          "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct.",
-          "copy_from": "Übernimmt statische Tarife und die Einstellungen des dynamischen Tarifs aus einem vorhandenen Eintrag. Die Eingabe der Tarife entfällt dann; die Werte lassen sich später unter Konfigurieren ändern."
+          "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct."
         }
       },
       "static": {
@@ -32,12 +30,34 @@
           "work_price_ct": "Arbeitspreis (ct/kWh)",
           "add_more": "Weiteren statischen Tarif hinzufügen"
         }
+      },
+      "assign": {
+        "title": "Statischer Tarif {nr}",
+        "description": "Tarif aus der Bibliothek zuweisen oder neu anlegen, mit Gültigkeitszeitraum. Weitere Tarife für andere Zeiträume können danach hinzugefügt werden.",
+        "data": {
+          "tariff_id": "Vorhandenen Tarif wählen (optional)",
+          "new_name": "Oder neuer Tarif: Name",
+          "new_base_fee": "Grundpreis (€/Monat)",
+          "new_work_price_ct": "Arbeitspreis (ct/kWh)",
+          "valid_from": "Gültig ab",
+          "valid_to": "Gültig bis (optional)",
+          "add_more": "Weiteren Tarif zuweisen"
+        },
+        "data_description": {
+          "tariff_id": "Bestehenden Tarif aus der Bibliothek auswählen. Alternativ unten einen neuen Tarif anlegen.",
+          "new_name": "Name des neuen Tarifs, z. B. „Grundversorgung 2025“. Wird in die Bibliothek übernommen.",
+          "new_work_price_ct": "Typisch 25–40 ct/kWh je nach Tarif.",
+          "valid_from": "Erster Tag, an dem der Tarif gilt.",
+          "valid_to": "Letzter Tag (einschließlich). Leer = offen. Zeiträume dürfen sich nicht überschneiden."
+        }
       }
     },
     "error": {
       "invalid_period": "Das Enddatum liegt vor dem Startdatum.",
-      "unsupported_unit": "Einheit nicht unterstützt. Verbrauch: W, kW, Wh, kWh oder MWh. Preis: ct/kWh, €/kWh oder €/MWh.",
-      "copy_source_missing": "Der Quelleintrag existiert nicht mehr."
+      "overlap": "Der Zeitraum überschneidet sich mit einem bereits zugewiesenen Tarif.",
+      "tariff_missing": "Bitte einen Tarif wählen oder Name und Arbeitspreis eines neuen Tarifs angeben.",
+      "in_use": "Der Tarif wird noch von einem Eintrag verwendet und kann nicht gelöscht werden.",
+      "unsupported_unit": "Einheit nicht unterstützt. Verbrauch: W, kW, Wh, kWh oder MWh. Preis: ct/kWh, €/kWh oder €/MWh."
     }
   },
   "entity": {
@@ -94,13 +114,20 @@
   "options": {
     "step": {
       "init": {
-        "title": "Tarife ändern",
+        "title": "Tarife verwalten",
         "menu_options": {
-          "dynamic": "Dynamischer Tarif (Grundpreis, Faktor, Aufschlag)",
-          "static_add": "Statischen Tarif hinzufügen",
-          "static_remove": "Statischen Tarif entfernen",
-          "show": "Eingegebene Werte anzeigen"
+          "show": "Eingegebene Werte anzeigen",
+          "dynamic": "Dynamischer Tarif (Grundpreis, Faktor, Aufschlag, Zeitraum)",
+          "assign_add": "Statischen Tarif zuweisen",
+          "assign_remove": "Zuweisung entfernen",
+          "lib_add": "Tarif in Bibliothek anlegen",
+          "lib_edit": "Tarif in Bibliothek ändern",
+          "lib_delete": "Tarif aus Bibliothek löschen"
         }
+      },
+      "show": {
+        "title": "Eingegebene Werte",
+        "description": "{werte}"
       },
       "dynamic": {
         "title": "Dynamischer Tarif",
@@ -109,37 +136,75 @@
           "dyn_base_fee": "Grundpreis (€/Monat)",
           "dyn_factor": "Faktor auf Börsenpreis",
           "dyn_surcharge_ct": "Aufschlag (ct/kWh)",
-          "eval_start": "Auswertung ab"
+          "eval_start": "Auswertung ab",
+          "eval_end": "Auswertung bis (optional)"
         },
         "data_description": {
           "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei Tibber meist 1,0, weil der Preis schon brutto ist.",
           "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct."
         }
       },
-      "static_add": {
-        "title": "Statischer Tarif hinzufügen",
-        "description": "Änderungen führen zu einer Neuberechnung ab Auswertungsbeginn.",
+      "assign_add": {
+        "title": "Statischen Tarif zuweisen",
+        "description": "Tarif aus der Bibliothek wählen oder neu anlegen. Zeiträume dürfen sich nicht überschneiden.",
         "data": {
-          "tariff_name": "Bezeichnung",
+          "tariff_id": "Vorhandenen Tarif wählen (optional)",
+          "new_name": "Oder neuer Tarif: Name",
+          "new_base_fee": "Grundpreis (€/Monat)",
+          "new_work_price_ct": "Arbeitspreis (ct/kWh)",
           "valid_from": "Gültig ab",
           "valid_to": "Gültig bis (optional)",
-          "base_fee": "Grundpreis (€/Monat)",
-          "work_price_ct": "Arbeitspreis (ct/kWh)"
+          "add_more": "Weiteren Tarif zuweisen"
+        },
+        "data_description": {
+          "tariff_id": "Bestehenden Tarif aus der Bibliothek auswählen. Alternativ unten einen neuen Tarif anlegen.",
+          "new_name": "Name des neuen Tarifs, z. B. „Grundversorgung 2025“. Wird in die Bibliothek übernommen.",
+          "new_work_price_ct": "Typisch 25–40 ct/kWh je nach Tarif.",
+          "valid_from": "Erster Tag, an dem der Tarif gilt.",
+          "valid_to": "Letzter Tag (einschließlich). Leer = offen. Zeiträume dürfen sich nicht überschneiden."
         }
       },
-      "static_remove": {
-        "title": "Statischen Tarif entfernen",
+      "assign_remove": {
+        "title": "Zuweisung entfernen",
         "data": {
-          "tariff": "Tarif"
+          "assignment": "Zuweisung"
         }
       },
-      "show": {
-        "title": "Eingegebene Werte",
-        "description": "{werte}"
+      "lib_add": {
+        "title": "Tarif anlegen",
+        "data": {
+          "new_name": "Name",
+          "new_base_fee": "Grundpreis (€/Monat)",
+          "new_work_price_ct": "Arbeitspreis (ct/kWh)"
+        }
+      },
+      "lib_edit": {
+        "title": "Tarif ändern",
+        "data": {
+          "tariff_id": "Tarif"
+        }
+      },
+      "lib_edit_form": {
+        "title": "Tarif ändern",
+        "description": "Änderungen wirken auf alle Einträge, die diesen Tarif verwenden (Neuberechnung ab Auswertungsbeginn).",
+        "data": {
+          "new_name": "Name",
+          "new_base_fee": "Grundpreis (€/Monat)",
+          "new_work_price_ct": "Arbeitspreis (ct/kWh)"
+        }
+      },
+      "lib_delete": {
+        "title": "Tarif löschen",
+        "data": {
+          "tariff_id": "Tarif"
+        }
       }
     },
     "error": {
-      "invalid_period": "Das Enddatum liegt vor dem Startdatum."
+      "tariff_missing": "Bitte einen Tarif wählen oder Name und Arbeitspreis eines neuen Tarifs angeben.",
+      "in_use": "Der Tarif wird noch von einem Eintrag verwendet und kann nicht gelöscht werden.",
+      "invalid_period": "Das Enddatum liegt vor dem Startdatum.",
+      "overlap": "Der Zeitraum überschneidet sich mit einem bereits zugewiesenen Tarif."
     }
   }
 }

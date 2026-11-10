@@ -33,6 +33,7 @@ from .calc import (
     summarize,
     yearly,
 )
+from .tariff_library import async_load_library, build_statics
 from .const import (
     CONF_BASE_FEE,
     CONF_CONSUMPTION,
@@ -85,16 +86,7 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._tz = dt_util.get_default_time_zone()
         self._eval_start: date = date.fromisoformat(d[CONF_EVAL_START])
         self._eval_end: date | None = date.fromisoformat(d[CONF_EVAL_END]) if d.get(CONF_EVAL_END) else None
-        self._statics = [
-            StaticTariff(
-                name=t[CONF_TARIFF_NAME],
-                valid_from=date.fromisoformat(t[CONF_VALID_FROM]),
-                valid_to=date.fromisoformat(t[CONF_VALID_TO]) if t.get(CONF_VALID_TO) else None,
-                base_fee_month=float(t[CONF_BASE_FEE]),
-                work_price=float(t[CONF_WORK_PRICE_CT]) / 100,
-            )
-            for t in d[CONF_STATIC_TARIFFS]
-        ]
+        self._assignments: list[dict[str, Any]] = d[CONF_STATIC_TARIFFS]
         self._dynamic = DynamicTariff(
             base_fee_month=float(d[CONF_DYN_BASE]),
             factor=float(d[CONF_DYN_FACTOR]),
@@ -127,8 +119,10 @@ class DynamicTariffAuditorCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # --- Start / Stop ----------------------------------------------------
     async def async_setup(self) -> None:
         start_ts = datetime.combine(self._eval_start, time(0), tzinfo=self._tz).timestamp()
+        library = await async_load_library(self.hass)
+        statics = build_statics(self._assignments, library)
         self._evaluator = Evaluator(
-            self._statics, self._dynamic, self._prices, self._tz, start_ts,
+            statics, self._dynamic, self._prices, self._tz, start_ts,
             kind=self._kind, end_ts=self._end_ts(),
         )
         # Importierte Börsenpreise (z. B. Energy-Charts) zuerst laden
