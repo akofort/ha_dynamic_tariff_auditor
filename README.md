@@ -5,6 +5,8 @@ Zeitraum gegen einen oder mehrere **statische Tarife** (Grundpreis + Arbeitsprei
 Die Auswertung läuft live und historisch: Der Erstlauf rechnet ab einem frei wählbaren Datum nach,
 danach läuft sie mit den Zustandsänderungen weiter.
 
+> **Hinweis:** Die Integration liefert Näherungswerte ohne Gewähr. Sie dient als Orientierung, ob sich ein dynamischer Stromtarif für dich lohnen könnte. Für verbindliche Aussagen gelten deine Stromrechnungen und die Vertragsbedingungen des Anbieters. Abweichungen entstehen z. B. durch Rundung, Lücken in Preis- oder Verbrauchsdaten, vereinfachte Grundgebühren und Aufschläge, die nur geschätzt sind.
+
 ## Funktionen
 
 - **Tarifbibliothek:** statische Tarife anlegen, ändern und löschen. Änderungen wirken auf alle Einträge, die den Tarif nutzen.
