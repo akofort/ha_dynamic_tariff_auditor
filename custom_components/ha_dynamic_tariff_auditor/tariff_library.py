@@ -14,7 +14,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .calc import StaticTariff
+from .calc import StaticTariff, periods_overlap
 from .const import (
     CONF_BASE_FEE,
     CONF_TARIFF_NAME,
@@ -81,15 +81,6 @@ def assignment_label(a: dict[str, Any], library: Library) -> str:
     else:
         name = a[CONF_TARIFF_NAME]
     return f"{name}: {a[CONF_VALID_FROM]} bis {a.get(CONF_VALID_TO) or 'offen'}"
-
-
-def periods_overlap(a_from: str, a_to: str | None, b_from: str, b_to: str | None) -> bool:
-    """Überschneiden sich die beiden Zeiträume (Enddatum inklusive, None = offen)?"""
-    af = date.fromisoformat(a_from)
-    bf = date.fromisoformat(b_from)
-    at = date.fromisoformat(a_to) if a_to else date.max
-    bt = date.fromisoformat(b_to) if b_to else date.max
-    return af <= bt and bf <= at
 
 
 def tariffs_in_use(library_id: str, entries_assignments: list[list[dict[str, Any]]]) -> bool:

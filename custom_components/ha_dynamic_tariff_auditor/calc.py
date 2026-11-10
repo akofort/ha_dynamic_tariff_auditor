@@ -295,3 +295,12 @@ def yearly(months: dict[str, Bucket]) -> dict[str, Bucket]:
         for f in fields(Bucket):
             setattr(y, f.name, getattr(y, f.name) + getattr(m, f.name))
     return years
+
+
+def periods_overlap(a_from: str, a_to: str | None, b_from: str, b_to: str | None) -> bool:
+    """Überschneiden sich die beiden Zeiträume (Enddatum inklusive, None = offen)?"""
+    af = date.fromisoformat(a_from)
+    bf = date.fromisoformat(b_from)
+    at = date.fromisoformat(a_to) if a_to else date.max
+    bt = date.fromisoformat(b_to) if b_to else date.max
+    return af <= bt and bf <= at
