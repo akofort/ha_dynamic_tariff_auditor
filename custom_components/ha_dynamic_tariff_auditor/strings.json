@@ -15,8 +15,8 @@
           "eval_end": "Auswertung bis (optional)"
         },
         "data_description": {
-          "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei Tibber meist 1,0, weil der Preis schon brutto ist.",
-          "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct."
+          "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei einem Sensor mit fertigem Endpreis brutto (z. B. Tibber-Gesamtpreis) stattdessen 1,0.",
+          "dyn_surcharge_ct": "Anbieteraufschlag + Netzentgelte + Umlagen/Abgaben, typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber. Entfällt (0) bei einem Sensor mit fertigem Endpreis. Vorbelegt mit 18 ct."
         }
       },
       "static": {
@@ -140,8 +140,8 @@
           "eval_end": "Auswertung bis (optional)"
         },
         "data_description": {
-          "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei Tibber meist 1,0, weil der Preis schon brutto ist.",
-          "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct."
+          "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei einem Sensor mit fertigem Endpreis brutto (z. B. Tibber-Gesamtpreis) stattdessen 1,0.",
+          "dyn_surcharge_ct": "Anbieteraufschlag + Netzentgelte + Umlagen/Abgaben, typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber. Entfällt (0) bei einem Sensor mit fertigem Endpreis. Vorbelegt mit 18 ct."
         }
       },
       "assign_add": {

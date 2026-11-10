@@ -79,10 +79,12 @@ Der Preis wird aus dem Börsenpreis so berechnet:
 
 Vorbelegt sind Faktor **1,19** und Aufschlag **18 ct/kWh**.
 
-- **Faktor:** 1,19, wenn der Börsenpreis netto ist (MwSt. 19 %). Ist der Sensor schon brutto (z. B. Tibber-Gesamtpreis), 1,0 eintragen.
-- **Aufschlag:** typisch **16–20 ct/kWh** je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Die genaue Höhe steht auf der Stromrechnung.
-- **Tibber:** meist Faktor `1,0`, Aufschlag `0`.
-- **aWATTar:** Faktor `1,19`, Aufschlag = Netzentgelte, Abgaben und Anbieterpreis.
+- **Faktor:** 1,19 (Mehrwertsteuer), wenn der Börsenpreis netto ist. Das ist der Normalfall, wenn du den Börsenpreis über Energy-Charts, SMARD oder einen EPEX-Sensor nutzt.
+- **Aufschlag:** Anbieteraufschlag + Netzentgelte + Umlagen und Abgaben in ct/kWh, typisch **16–20 ct/kWh** je nach Anbieter und Netzbetreiber. Die genaue Höhe steht auf der Stromrechnung bzw. in der Preisaufschlüsselung des Anbieters.
+
+Die Werte gelten für **Tibber und aWATTar gleichermaßen**: Beide geben den Börsenpreis weiter und rechnen Aufschläge, Netzentgelte und Steuern darauf.
+
+**Ausnahme:** Liefert der Anbieter-Sensor direkt den fertigen Endpreis brutto (z. B. ein Tibber-Sensor mit Gesamtpreis), dann Faktor `1,0` und Aufschlag `0` eintragen. Dann ist der Sensor selbst die Preisquelle, nicht der Börsenpreis.
 
 Den Abgleich macht man am besten mit der Stromrechnung. Stimmt der Betrag nicht, passt meist Faktor oder Aufschlag nicht.
 
