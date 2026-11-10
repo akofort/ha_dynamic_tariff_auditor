@@ -12,11 +12,13 @@
           "dyn_factor": "Faktor auf Börsenpreis",
           "dyn_surcharge_ct": "Aufschlag (ct/kWh, nach Faktor)",
           "eval_start": "Auswertung ab",
-          "eval_end": "Auswertung bis (optional)"
+          "eval_end": "Auswertung bis (optional)",
+          "copy_from": "Tarife übernehmen aus (optional)"
         },
         "data_description": {
           "dyn_factor": "1,19 bei Börsenpreis netto (MwSt. 19 %). Bei Tibber meist 1,0, weil der Preis schon brutto ist.",
-          "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct."
+          "dyn_surcharge_ct": "Typisch 16–20 ct/kWh je nach Anbieter und Netzbetreiber (Netzentgelte, Umlagen, Anbieteraufschlag). Vorbelegt mit 18 ct.",
+          "copy_from": "Übernimmt statische Tarife und die Einstellungen des dynamischen Tarifs aus einem vorhandenen Eintrag. Die Eingabe der Tarife entfällt dann; die Werte lassen sich später unter Konfigurieren ändern."
         }
       },
       "static": {
@@ -34,7 +36,8 @@
     },
     "error": {
       "invalid_period": "Das Enddatum liegt vor dem Startdatum.",
-      "unsupported_unit": "Einheit nicht unterstützt. Verbrauch: W, kW, Wh, kWh oder MWh. Preis: ct/kWh, €/kWh oder €/MWh."
+      "unsupported_unit": "Einheit nicht unterstützt. Verbrauch: W, kW, Wh, kWh oder MWh. Preis: ct/kWh, €/kWh oder €/MWh.",
+      "copy_source_missing": "Der Quelleintrag existiert nicht mehr."
     }
   },
   "entity": {

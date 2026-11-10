@@ -7,7 +7,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow, ConfigEntryState
 from homeassistant.core import callback
 from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig, SelectSelectorMode
 from homeassistant.core import HomeAssistant
@@ -24,6 +24,7 @@ from homeassistant.util import dt as dt_util
 
 from .calc import ENERGY_UNIT_FACTORS, POWER_UNIT_FACTORS
 from .const import (
+    CONF_COPY_FROM,
     CONF_EVAL_END,
     VERSION,
     CONF_CONSUMPTION_FACTOR,
@@ -57,9 +58,21 @@ def _entity_unit(hass: HomeAssistant, entity_id: str) -> str | None:
     return state.attributes.get("unit_of_measurement") if state else None
 
 
-def _user_schema() -> vol.Schema:
+def _user_schema(hass: HomeAssistant | None = None) -> vol.Schema:
+    copy_field: dict = {}
+    if hass is not None:
+        options = [
+            {"value": e.entry_id, "label": e.title}
+            for e in hass.config_entries.async_entries(DOMAIN)
+            if e.state is ConfigEntryState.LOADED
+        ]
+        if options:
+            copy_field[vol.Optional(CONF_COPY_FROM)] = SelectSelector(
+                SelectSelectorConfig(options=options, mode=SelectSelectorMode.DROPDOWN)
+            )
     return vol.Schema(
         {
+            **copy_field,
             vol.Required(CONF_NAME, default="Tarifvergleich"): str,
             vol.Required(CONF_CONSUMPTION): EntitySelector(EntitySelectorConfig(domain="sensor")),
             vol.Required(CONF_PRICE): EntitySelector(EntitySelectorConfig(domain="sensor")),
@@ -133,7 +146,7 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
             if price_unit not in PRICE_UNITS:
                 errors[CONF_PRICE] = "unsupported_unit"
             if errors:
-                return self.async_show_form(step_id="user", data_schema=_user_schema(), errors=errors)
+                return self.async_show_form(step_id="user", data_schema=_user_schema(self.hass), errors=errors)
             self._general = {
                 **user_input,
                 CONF_CONSUMPTION_KIND: kind,
@@ -142,10 +155,29 @@ class DynamicTariffAuditorConfigFlow(ConfigFlow, domain=DOMAIN):
             }
             if not self._general.get(CONF_EVAL_END):
                 self._general.pop(CONF_EVAL_END, None)
+            source_id = user_input.get(CONF_COPY_FROM)
+            if source_id:
+                source = self.hass.config_entries.async_get_entry(source_id)
+                if source is None:
+                    errors[CONF_COPY_FROM] = "copy_source_missing"
+                    return self.async_show_form(
+                        step_id="user", data_schema=_user_schema(self.hass), errors=errors,
+                        description_placeholders={"version": VERSION},
+                    )
+                # Übernahme: statische Tarife und Einstellungen des dynamischen Tarifs
+                self._static = [dict(t) for t in source.data[CONF_STATIC_TARIFFS]]
+                for key in (CONF_DYN_BASE, CONF_DYN_FACTOR, CONF_DYN_SURCHARGE):
+                    self._general[key] = source.data[key]
+                self._general.pop(CONF_COPY_FROM, None)
+                return self.async_create_entry(
+                    title=self._general[CONF_NAME],
+                    data={**self._general, CONF_STATIC_TARIFFS: self._static},
+                )
+            self._general.pop(CONF_COPY_FROM, None)
             return await self.async_step_static()
         return self.async_show_form(
             step_id="user",
-            data_schema=_user_schema(),
+            data_schema=_user_schema(self.hass),
             description_placeholders={"version": VERSION},
         )
 

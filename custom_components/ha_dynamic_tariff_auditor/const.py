@@ -1,7 +1,7 @@
 """Konstanten für ha_dynamic_tariff_auditor."""
 
 DOMAIN = "ha_dynamic_tariff_auditor"
-VERSION = "0.7.1"
+VERSION = "0.8.0"
 
 CONF_NAME = "name"
 CONF_CONSUMPTION = "consumption_entity"
@@ -14,7 +14,8 @@ CONF_DYN_FACTOR = "dyn_factor"
 CONF_DYN_SURCHARGE = "dyn_surcharge_ct"
 CONF_EVAL_START = "eval_start"
 CONF_STATIC_TARIFFS = "static_tariffs"
-CONF_EVAL_END = "eval_end"  # optional: Auswertung bis
+CONF_EVAL_END = "eval_end"
+CONF_COPY_FROM = "copy_from"  # optional: Tarife aus vorhandenem Eintrag übernehmen  # optional: Auswertung bis
 
 CONF_TARIFF_NAME = "tariff_name"
 CONF_VALID_FROM = "valid_from"
