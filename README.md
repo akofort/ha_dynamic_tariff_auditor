@@ -108,4 +108,4 @@ Die Tests prüfen die Berechnung in `calc.py` ohne Home Assistant.
 
 ## Lizenz
 
-Privat, keine Lizenz.
+MIT-Lizenz, siehe [LICENSE](LICENSE). Copyright (c) 2026 A. Kofort.
